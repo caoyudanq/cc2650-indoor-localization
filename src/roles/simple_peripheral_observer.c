@@ -364,7 +364,7 @@ static beaconsProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
 
 void SimpleBLEPeripheral_startDiscovery(void)
 {
-    bStatus_t s = BeaconsProfile_ClearMemory();
+    BeaconsProfile_ClearMemory();
 
     bStatus_t status = GAPObserverRole_StartDiscovery(DEFAULT_DISCOVERY_MODE,
                                                       DEFAULT_DISCOVERY_ACTIVE_SCAN,
@@ -379,11 +379,6 @@ void SimpleBLEPeripheral_startDiscovery(void)
         Display_print1(dispHandle, 4, 0, "Scanning Off: %d", status);
         //System_printf("\nScanning Off: %d", status);
     }
-
-    if(s == SUCCESS)
-        Display_print0(dispHandle, 5, 0, "Alloc OK");
-    else
-        Display_print0(dispHandle, 5, 0, "Alloc ERROR");
 
     //System_flush();
 }

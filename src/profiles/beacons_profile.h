@@ -53,4 +53,4 @@ extern bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *valu
 extern void* BeaconsProfile_GetParameter(uint8 param);
 extern bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCalbacks);
 extern void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp);
-extern bStatus_t BeaconsProfile_ClearMemory(void);
+extern void BeaconsProfile_ClearMemory(void);

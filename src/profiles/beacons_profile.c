@@ -69,8 +69,8 @@ static uint8 beaconsDiscoScanChar = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint8 beaconsDiscoScanValue = 0;
 static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value > 1";
 
-static beaconRecord * beacons = NULL;
-static macAddr * beaconsMacAddr = NULL;
+static beaconRecord beacons[DEFAULT_MAX_SCAN_RES];
+static macAddr beaconsMacAddr[BEACONS_MAC_ADDR_LENGTH];
 static uint8 beaconsMacAddrCount = 0;
 static uint16 beaconsTotalCount = 0;
 static uint16 beaconsSelectedIndex = 0;
@@ -257,8 +257,6 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
 bStatus_t BeaconsProfileAddService(void)
 {
     Timestamp_getFreq(&freq);
-    beacons = ICall_malloc(sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
-    beaconsMacAddr = ICall_malloc(sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH);
 
     bStatus_t scanService = GATTServApp_RegisterService(beaconsDiscoServiceAttrTbl, GATT_NUM_ATTRS(beaconsDiscoServiceAttrTbl),
                                                         GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsProfileCBs);
@@ -417,21 +415,10 @@ void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32
     }
 }
 
-bStatus_t BeaconsProfile_ClearMemory(void)
+void BeaconsProfile_ClearMemory(void)
 {
-    ICall_free(beacons);
-    ICall_free(beaconsMacAddr);
-
     beaconsMacAddrCount = 0;
     beaconsTotalCount = 0;
-
-    beacons = ICall_malloc(sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
-    beaconsMacAddr = ICall_malloc(sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH);
-
-    if(beacons != NULL && beaconsMacAddr != NULL)
-        return SUCCESS;
-    else
-        return FAILURE;
 }
 
 /*
