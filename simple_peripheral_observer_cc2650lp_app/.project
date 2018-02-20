@@ -87,6 +87,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/roles/simple_peripheral_observer.h</locationURI>
 		</link>
 		<link>
+			<name>Application/tools.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/tools/tools.h</locationURI>
+		</link>
+		<link>
 			<name>Application/util.c</name>
 			<type>1</type>
 			<locationURI>SRC_BLE_CORE/common/cc26xx/util.c</locationURI>

@@ -42,6 +42,8 @@
  * INCLUDES
  */
 #include <xdc/runtime/System.h>
+#include <xdc/runtime/Timestamp.h>
+#include <xdc/runtime/Types.h>
 #include <string.h>
 
 #include <ti/sysbios/knl/Task.h>
@@ -58,10 +60,10 @@
 #include "simple_gatt_profile.h"
 #include "beacons_profile.h"
 
-#if defined(FEATURE_OAD) || defined(IMAGE_INVALIDATE)
+/*#if defined(FEATURE_OAD) || defined(IMAGE_INVALIDATE)
 #include "oad_target.h"
 #include "oad.h"
-#endif //FEATURE_OAD || IMAGE_INVALIDATE
+#endif //FEATURE_OAD || IMAGE_INVALIDATE*/
 
 #include "peripheral_observer.h"
 #include "gapbondmgr.h"
@@ -70,6 +72,7 @@
 #include "icall_apimsg.h"
 
 #include "util.h"
+#include "tools.h"
 
 #ifdef USE_RCOSC
 #include "rcosc_calibration.h"
@@ -135,7 +138,7 @@
 //#define DEFAULT_MAX_SCAN_RES                  20//8
 
 // Scan duration in ms
-#define DEFAULT_SCAN_DURATION                 5000
+#define DEFAULT_SCAN_DURATION                 2000
 
 // Scan interval in ms
 #define DEFAULT_SCAN_INTERVAL                 10
@@ -147,17 +150,12 @@
 #define DEFAULT_DISCOVERY_MODE                DEVDISC_MODE_ALL
 
 // TRUE to use active scan
-#define DEFAULT_DISCOVERY_ACTIVE_SCAN         TRUE
+#define DEFAULT_DISCOVERY_ACTIVE_SCAN         FALSE
 
 // TRUE to use white list during discovery
 #define DEFAULT_DISCOVERY_WHITE_LIST          FALSE
 
 #endif //#ifdef PLUS_OBSERVER
-
-#ifdef FEATURE_OAD
-// The size of an OAD packet.
-#define OAD_PACKET_SIZE                       ((OAD_BLOCK_SIZE) + 2)
-#endif // FEATURE_OAD
 
 // Task configuration
 #define SBP_TASK_PRIORITY                     1
@@ -214,12 +212,6 @@ static Clock_Struct periodicClock;
 // Queue object used for app messages
 static Queue_Struct appMsg;
 static Queue_Handle appMsgQueue;
-
-#if defined(FEATURE_OAD)
-// Event data from OAD profile.
-static Queue_Struct oadQ;
-static Queue_Handle hOadQ;
-#endif //FEATURE_OAD
 
 // events flag for internal application events.
 static uint16_t events;
@@ -308,6 +300,7 @@ static uint8_t deviceInfoCnt = 0;
 
 static beaconRecord *discoveredBeacons = NULL;
 static uint8 discoBeaconsCount = 0;
+static uint8 rspCount = 0;
 
 const char *AdvTypeStrings[] = {"Connectable undirected","Connectable directed", "Scannable undirected", "Non-connectable undirected", "Scan response"};
 /*********************************************************************
@@ -338,11 +331,6 @@ static void SimpleBLEPeripheral_charValueChangeCB(uint8_t paramID);
 #endif //!FEATURE_OAD_ONCHIP
 static void SimpleBLEPeripheral_enqueueMsg(uint8_t event, uint8_t state, uint8_t *pData);
 
-#ifdef FEATURE_OAD
-void SimpleBLEPeripheral_processOadWriteCB(uint8_t event, uint16_t connHandle,
-                                           uint8_t *pData);
-#endif //FEATURE_OAD
-
 
 /*********************************************************************
  * PROFILE CALLBACKS
@@ -370,29 +358,13 @@ static beaconsProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
      SimpleBLEPeripheral_charValueChangeCB
 };
 
-// Simple GATT Profile Callbacks
-#ifndef FEATURE_OAD_ONCHIP
-static simpleProfileCBs_t SimpleBLEPeripheral_simpleProfileCBs =
-{
-  SimpleBLEPeripheral_charValueChangeCB // Characteristic value change callback
-};
-#endif //!FEATURE_OAD_ONCHIP
-
-#ifdef FEATURE_OAD
-static oadTargetCBs_t simpleBLEPeripheral_oadCBs =
-{
-  SimpleBLEPeripheral_processOadWriteCB // Write Callback.
-};
-#endif //FEATURE_OAD
-
 /*********************************************************************
  * PUBLIC FUNCTIONS
  */
 
 void SimpleBLEPeripheral_startDiscovery(void)
 {
-    discoveredBeacons = ICall_malloc(sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
-    discoBeaconsCount = 0;
+    bStatus_t s = BeaconsProfile_ClearMemory();
 
     bStatus_t status = GAPObserverRole_StartDiscovery(DEFAULT_DISCOVERY_MODE,
                                                       DEFAULT_DISCOVERY_ACTIVE_SCAN,
@@ -400,15 +372,20 @@ void SimpleBLEPeripheral_startDiscovery(void)
     if(status == SUCCESS)
     {
         Display_print0(dispHandle, 4, 0, "Scanning On");
-        System_printf("\nScanning On");
+        //System_printf("\nScanning On");
     }
     else
     {
         Display_print1(dispHandle, 4, 0, "Scanning Off: %d", status);
-        System_printf("\nScanning Off: %d", status);
+        //System_printf("\nScanning Off: %d", status);
     }
 
-    System_flush();
+    if(s == SUCCESS)
+        Display_print0(dispHandle, 5, 0, "Alloc OK");
+    else
+        Display_print0(dispHandle, 5, 0, "Alloc ERROR");
+
+    //System_flush();
 }
 
 /*********************************************************************
@@ -489,6 +466,7 @@ static void SimpleBLEPeripheral_init(void)
     //Set scan window
     GAP_SetParamValue(TGAP_GEN_DISC_SCAN_WIND, (DEFAULT_SCAN_WINDOW)/(0.625)); //active scanning time within scan interval
 
+    GAP_SetParamValue(TGAP_FILTER_ADV_REPORTS, FALSE);
   }
 #endif
 
@@ -534,7 +512,7 @@ static void SimpleBLEPeripheral_init(void)
   }
 
   // Set the GAP Characteristics
-  GGS_SetParameter(GGS_DEVICE_NAME_ATT, GAP_DEVICE_NAME_LEN, attDeviceName);
+  GGS_SetParameter(GGS_DEVICE_NAME_ATT, LENGTH_OF_ARRAY(attDeviceName), attDeviceName);
 
   // Set advertising interval
   {
@@ -567,46 +545,7 @@ static void SimpleBLEPeripheral_init(void)
   GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT attributes
   BeaconsProfileAddService();
 
-#ifndef FEATURE_OAD_ONCHIP
-  //SimpleProfile_AddService(GATT_ALL_SERVICES); // Simple GATT Profile
-#endif //!FEATURE_OAD_ONCHIP
-
-#ifdef FEATURE_OAD
-  VOID OAD_addService();                 // OAD Profile
-  OAD_register((oadTargetCBs_t *)&simpleBLEPeripheral_oadCBs);
-  hOadQ = Util_constructQueue(&oadQ);
-#endif //FEATURE_OAD
-
-#ifdef IMAGE_INVALIDATE
-  Reset_addService();
-#endif //IMAGE_INVALIDATE
-
-
-#ifndef FEATURE_OAD_ONCHIP
-  // Setup the SimpleProfile Characteristic Values
-  /*{
-    uint8_t charValue1 = 1;
-    uint8_t charValue2 = 2;
-    uint8_t charValue3 = 3;
-    uint8_t charValue4 = 4;
-    uint8_t charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 1, 2, 3, 4, 5 };
-
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR1, sizeof(uint8_t),
-                               &charValue1);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR2, sizeof(uint8_t),
-                               &charValue2);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR3, sizeof(uint8_t),
-                               &charValue3);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &charValue4);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN,
-                               charValue5);
-  }
-
-  // Register callback with SimpleGATTprofile
-  SimpleProfile_RegisterAppCBs(&SimpleBLEPeripheral_simpleProfileCBs);*/
   BeaconsProfile_RegisterAppCBs(&SimpleBLEPeripheral_beaconsProfileCBs);
-#endif //!FEATURE_OAD_ONCHIP
 
   // Start the Device
   VOID GAPRole_StartDevice(&SimpleBLEPeripheral_gapRoleCBs);
@@ -624,19 +563,7 @@ static void SimpleBLEPeripheral_init(void)
 
   Display_print0(dispHandle, 0, 1, "CC2650-Indoor");
 
-/*#if defined FEATURE_OAD
-#if defined (HAL_IMAGE_A)
-  Display_print0(dispHandle, 0, 0, "BLE Peripheral A");
-#else
-  Display_print0(dispHandle, 0, 0, "BLE Peripheral B");
-#endif // HAL_IMAGE_A
-#else
-#ifdef PLUS_OBSERVER
-  Display_print0(dispHandle, 0, 0, "BLE Peripheral Observer");
-#else
-  Display_print0(dispHandle, 0, 0, "BLE Peripheral");
-#endif
-#endif // FEATURE_OAD*/
+  Display_print1(dispHandle, 11, 0, "Size: %d", sizeof(uint32));
 }
 
 /*********************************************************************
@@ -723,27 +650,6 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
       // Perform periodic application task
       SimpleBLEPeripheral_performPeriodicTask();
     }
-
-#ifdef FEATURE_OAD
-    while (!Queue_empty(hOadQ))
-    {
-      oadTargetWrite_t *oadWriteEvt = Queue_dequeue(hOadQ);
-
-      // Identify new image.
-      if (oadWriteEvt->event == OAD_WRITE_IDENTIFY_REQ)
-      {
-        OAD_imgIdentifyWrite(oadWriteEvt->connHandle, oadWriteEvt->pData);
-      }
-      // Write a next block request.
-      else if (oadWriteEvt->event == OAD_WRITE_BLOCK_REQ)
-      {
-        OAD_imgBlockWrite(oadWriteEvt->connHandle, oadWriteEvt->pData);
-      }
-
-      // Free buffer.
-      ICall_free(oadWriteEvt);
-    }
-#endif //FEATURE_OAD
   }
 }
 
@@ -796,10 +702,18 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
 
     case GAP_DEVICE_INFO_EVENT:
       {
+        Display_print1(dispHandle, 7, 0, "RspCount: %d", ++rspCount);
+        BeaconsProfile_AddBeaconRecord(pEvent->deviceInfo.addr, pEvent->deviceInfo.rssi, Timestamp_get32());
+        /*
+        System_printf("\nMAC: ");
+        System_printf(Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
+        System_printf(" RSSI: %d", pEvent->deviceInfo.rssi);
+        System_flush();
+        */
         //Print scan response data otherwise advertising data
         if(pEvent->deviceInfo.eventType == GAP_ADRPT_SCAN_RSP)
         {         
-          //Display_print1(dispHandle, 4, 0, "Scan Response Addr: %s", Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
+            //Display_print1(dispHandle, 4, 0, "Scan Response Addr: %s", Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
           //Display_print1(dispHandle, 5, 0, "Scan Response Data: %s", Util_convertBytes2Str(pEvent->deviceInfo.pEvtData, pEvent->deviceInfo.dataLen));
         }
         else
@@ -808,17 +722,10 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
           //Display_print2(dispHandle, 6, 0, "Advertising Addr: %s Advertising Type: %s", Util_convertBdAddr2Str(pEvent->deviceInfo.addr), AdvTypeStrings[pEvent->deviceInfo.eventType]);
           //Display_print1(dispHandle, 7, 0, "Advertising Data: %s", Util_convertBytes2Str(pEvent->deviceInfo.pEvtData, pEvent->deviceInfo.dataLen));
 
-          memcpy(discoveredBeacons[discoBeaconsCount].macAddr, pEvent->deviceInfo.addr, B_ADDR_LEN);
-          discoveredBeacons[discoBeaconsCount].rssi = pEvent->deviceInfo.rssi;
-          //Nastavit stari zaznamu
-          discoBeaconsCount++;
-
-          Display_print1(dispHandle, 6, 0, "Beacons: %d", discoBeaconsCount);
-
-          System_printf("\nMAC: ");
+          /*System_printf("\nMAC: ");
           System_printf(Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
           System_printf(" RSSI: %d", pEvent->deviceInfo.rssi);
-          System_flush();
+          System_flush();*/
         }
         
         ICall_free(pEvent->deviceInfo.pEvtData);
@@ -835,14 +742,26 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
         //Display_print0(dispHandle, 7, 0, "GAP_DEVICE_DISC_EVENT");
         //Display_print1(dispHandle, 5, 0, "Devices discovered: %d", pEvent->discCmpl.numDevs);
         Display_print0(dispHandle, 4, 0, "Scanning Off");
-        System_printf("\nDevices discovered: %d - Count: %d", pEvent->discCmpl.numDevs, discoBeaconsCount);
-        System_flush();
+        //System_printf("\nDevices discovered: %d - Count: %d", pEvent->discCmpl.numDevs, discoBeaconsCount);
+        //System_flush();
+
 
         BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint8), 0);
-        BeaconsProfile_SetParameter(BEACONS_LIST_GET_RECORD, sizeof(uint8), 0);
-        BeaconsProfile_SetParameter(BEACONS_LIST_TOTAL_COUNT, sizeof(uint8), &discoBeaconsCount);
-        BeaconsProfile_SetParameter(BEACONS_LIST_ALL_RECORDS, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES, discoveredBeacons);
-        ICall_free(discoveredBeacons);
+        //BeaconsProfile_SetParameter(BEACONS_LIST_GET_RECORD, sizeof(uint16), 0);
+
+        beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
+        macAddr * mac = BeaconsProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
+
+        //System_printf("================END================");
+
+        uint8 i;
+        for(i = 0; i < rspCount; i++) {
+            uint8 index = devices[i].indexOfMacAddr;
+            System_printf("\nMAC: %s RSSI: %d", Util_convertBdAddr2Str(mac[index].macAddr), devices[i].rssi);
+        }
+        System_flush();
+
+        rspCount = 0;
 
         ICall_free(pEvent->discCmpl.pDevList);
         ICall_free(pEvent);
@@ -1433,29 +1352,6 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
             SimpleBLEPeripheral_startDiscovery();
             break;
     }
-
-#ifndef FEATURE_OAD_ONCHIP
-  uint8_t newValue;
-
-  /*switch(paramID)
-  {
-    case SIMPLEPROFILE_CHAR1:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR1, &newValue);
-
-      Display_print1(dispHandle, 4, 0, "Char 1: %d", (uint16_t)newValue);
-      break;
-
-    case SIMPLEPROFILE_CHAR3:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &newValue);
-
-      Display_print1(dispHandle, 4, 0, "Char 3: %d", (uint16_t)newValue);
-      break;
-
-    default:
-      // should not reach here!
-      break;
-  }*/
-#endif //!FEATURE_OAD_ONCHIP
 }
 
 /*********************************************************************
@@ -1473,62 +1369,8 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
  */
 static void SimpleBLEPeripheral_performPeriodicTask(void)
 {
-#ifndef FEATURE_OAD_ONCHIP
-  uint8_t valueToCopy;
-
-  // Call to retrieve the value of the third characteristic in the profile
-  if (SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &valueToCopy) == SUCCESS)
-  {
-    // Call to set that value of the fourth characteristic in the profile.
-    // Note that if notifications of the fourth characteristic have been
-    // enabled by a GATT client device, then a notification will be sent
-    // every time this function is called.
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &valueToCopy);
-  }
-#endif //!FEATURE_OAD_ONCHIP
+    //Do nothing
 }
-
-
-#ifdef FEATURE_OAD
-/*********************************************************************
- * @fn      SimpleBLEPeripheral_processOadWriteCB
- *
- * @brief   Process a write request to the OAD profile.
- *
- * @param   event      - event type:
- *                       OAD_WRITE_IDENTIFY_REQ
- *                       OAD_WRITE_BLOCK_REQ
- * @param   connHandle - the connection Handle this request is from.
- * @param   pData      - pointer to data for processing and/or storing.
- *
- * @return  None.
- */
-void SimpleBLEPeripheral_processOadWriteCB(uint8_t event, uint16_t connHandle,
-                                           uint8_t *pData)
-{
-  oadTargetWrite_t *oadWriteEvt = ICall_malloc( sizeof(oadTargetWrite_t) + \
-                                             sizeof(uint8_t) * OAD_PACKET_SIZE);
-
-  if ( oadWriteEvt != NULL )
-  {
-    oadWriteEvt->event = event;
-    oadWriteEvt->connHandle = connHandle;
-
-    oadWriteEvt->pData = (uint8_t *)(&oadWriteEvt->pData + 1);
-    memcpy(oadWriteEvt->pData, pData, OAD_PACKET_SIZE);
-
-    Queue_enqueue(hOadQ, (Queue_Elem *)oadWriteEvt);
-
-    // Post the application's semaphore.
-    Semaphore_post(sem);
-  }
-  else
-  {
-    // Fail silently.
-  }
-}
-#endif //FEATURE_OAD
 
 /*********************************************************************
  * @fn      SimpleBLEPeripheral_clockHandler

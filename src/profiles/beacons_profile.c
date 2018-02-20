@@ -2,6 +2,8 @@
  *
  * */
 #include <xdc/runtime/System.h>
+#include <xdc/runtime/Timestamp.h>
+#include <xdc/runtime/Types.h>
 #include <string.h>
 
 #include "bcomdef.h"
@@ -11,6 +13,7 @@
 #include "gatt_uuid.h"
 #include "gatt_profile_uuid.h"
 #include "gattservapp.h"
+#include "tools.h"
 
 #include "beacons_profile.h"
 #include "simple_peripheral_observer.h"
@@ -52,29 +55,34 @@ static const uint8_t beaconsListRssiUUID[ATT_UUID_SIZE] =
      TI_BASE_UUID_128(BEACONS_LIST_RSSI_UUID)
 };
 
-static const uint8_t beaconsListAgeUUID[ATT_UUID_SIZE] =
+static const uint8_t beaconsListAgeOfRecordUUID[ATT_UUID_SIZE] =
 {
      TI_BASE_UUID_128(BEACONS_LIST_AGE_UUID)
 };
 
 
 static beaconsProfileCBs_t *beaconsProfile_AppCBs = NULL;
+static Types_FreqHz freq;
 
 static const gattAttrType_t beaconsDiscoService = {ATT_UUID_SIZE, beaconsDiscoServUUID};
 static uint8 beaconsDiscoScanChar = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint8 beaconsDiscoScanValue = 0;
 static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value > 1";
 
-static beaconRecord beacons[DEFAULT_MAX_SCAN_RES];
+static beaconRecord * beacons = NULL;
+static macAddr * beaconsMacAddr = NULL;
+static uint8 beaconsMacAddrCount = 0;
+static uint16 beaconsTotalCount = 0;
+static uint16 beaconsSelectedIndex = 0;
 
 static const gattAttrType_t beaconsListService = {ATT_UUID_SIZE, beaconsListServUUID};
 
 static uint8 beaconsListGetRecordChar = GATT_PROP_WRITE;
-static uint8 beaconsListGetRecordValue = 0;
+static uint8 beaconsListGetRecordValue[BEACONS_TOTAL_COUNT_LENGTH] = {0, 0};
 static uint8 beaconsListGetRecordCharDesc[] = "Index of record";
 
 static uint8 beaconsListTotalCountChar = GATT_PROP_READ;
-static uint8 beaconsListTotalCountValue = 0;
+static uint8 beaconsListTotalCountValue[BEACONS_TOTAL_COUNT_LENGTH] = {0, 0};
 static uint8 beaconsListTotalCountCharDesc[] = "Total count of records";
 
 static uint8 beaconsListMacAddrChar = GATT_PROP_READ;
@@ -82,8 +90,13 @@ static uint8 beaconsListMacAddrValue[B_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 static uint8 beaconsListMacAddrCharDesc[] = "MAC address";
 
 static uint8 beaconsListRssiChar = GATT_PROP_READ;
-static int8  beaconsListRssiValue = 0;
+static uint8  beaconsListRssiValue = 0;
 static uint8 beaconsListRssiCharDesc[] = "RSSI";
+
+static uint8 beaconsListAgeOfRecordChar = GATT_PROP_READ;
+//static uint32_t beaconsListAgeOfRecordValue = 0;
+static uint8 beaconsListAgeOfRecordValue[BEACONS_AGE_OF_RECORD_LENGTH] = {0, 0, 0, 0};
+static uint8 beaconsListAgeOfRecordCharDesc[] = "Age of record in ms";
 
 
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
@@ -159,7 +172,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListGetRecordUUID},
            GATT_PERMIT_WRITE,
            0,
-           &beaconsListGetRecordValue
+           beaconsListGetRecordValue
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -177,7 +190,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListTotalCountUUID},
            GATT_PERMIT_READ,
            0,
-           &beaconsListTotalCountValue
+           beaconsListTotalCountValue
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -220,11 +233,33 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            GATT_PERMIT_READ,
            0,
            beaconsListRssiCharDesc
+      },
+      {
+           {ATT_BT_UUID_SIZE, characterUUID},
+           GATT_PERMIT_READ,
+           0,
+           &beaconsListAgeOfRecordChar
+      },
+      {
+           {ATT_UUID_SIZE, beaconsListAgeOfRecordUUID},
+           GATT_PERMIT_READ,
+           0,
+           beaconsListAgeOfRecordValue
+      },
+      {
+           {ATT_BT_UUID_SIZE, charUserDescUUID},
+           GATT_PERMIT_READ,
+           0,
+           beaconsListAgeOfRecordCharDesc
       }
 };
 
 bStatus_t BeaconsProfileAddService(void)
 {
+    Timestamp_getFreq(&freq);
+    beacons = ICall_malloc(sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
+    beaconsMacAddr = ICall_malloc(sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH);
+
     bStatus_t scanService = GATTServApp_RegisterService(beaconsDiscoServiceAttrTbl, GATT_NUM_ATTRS(beaconsDiscoServiceAttrTbl),
                                                         GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsProfileCBs);
 
@@ -251,7 +286,7 @@ bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCallbacks)
     }
 }
 
-bStatus_t BeaconsProfile_SetParameter(uint8 param, uint8 len, void *value)
+bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
 {
     bStatus_t status = SUCCESS;
 
@@ -268,9 +303,9 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint8 len, void *value)
             }
             break;
         case BEACONS_LIST_GET_RECORD:
-            if(len == sizeof(uint8))
+            if(len == sizeof(uint16))
             {
-                beaconsListGetRecordValue = *((uint8 *) value);
+                beaconsSelectedIndex = *((uint16 *) value);
             }
             else
             {
@@ -278,9 +313,9 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint8 len, void *value)
             }
             break;
         case BEACONS_LIST_TOTAL_COUNT:
-            if(len == sizeof(uint8))
+            if(len == sizeof(uint16))
             {
-                beaconsListTotalCountValue = *((uint8 *) value);
+                beaconsTotalCount = *((uint16 *) value);
             }
             else
             {
@@ -305,11 +340,26 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint8 len, void *value)
     return status;
 }
 
-bStatus_t BeaconsProfile_GetParameter(uint8 param, void *value)
+void* BeaconsProfile_GetParameter(uint8 param)
 {
-    bStatus_t status = SUCCESS;
-
     switch(param)
+    {
+        case BEACONS_DISCO_SCAN:
+            return &beaconsDiscoScanValue;
+        case BEACONS_LIST_GET_RECORD:
+            return &beaconsListGetRecordValue;
+        case BEACONS_LIST_TOTAL_COUNT:
+            return &beaconsListTotalCountValue;
+        case BEACONS_LIST_ALL_RECORDS:
+            //memcpy(value, beacons, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
+            return beacons;
+        case BEACONS_LIST_MAC_ADDR:
+            return beaconsMacAddr;
+        default:
+            return NULL;
+    }
+
+    /*switch(param)
     {
         case BEACONS_DISCO_SCAN:
             *((uint8 *) value) = beaconsDiscoScanValue;
@@ -326,9 +376,132 @@ bStatus_t BeaconsProfile_GetParameter(uint8 param, void *value)
         default:
             status = INVALIDPARAMETER;
             break;
+    }*/
+
+    //return status;
+}
+
+static int16 BeaconsProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
+{
+    for(uint8 index = 0; index < beaconsMacAddrCount; index++)
+    {
+        uint8 ret = memcmp(beaconsMacAddr[index].macAddr, macAddr, B_ADDR_LEN);
+        if(ret == 0)
+            return index;
     }
 
-    return status;
+    return MAC_ADDR_NOT_FOUND;
+}
+
+void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp)
+{
+    if(beaconsMacAddrCount == BEACONS_MAC_ADDR_LENGTH)
+        //nastavit priznak, ze bylo nalezeno vice beaconu
+        return;
+
+    //Kontrolovat celkovy pocet zaznamu
+
+    int16 indexOfMacAddr = BeaconsProfile_FindMacAddr(macAddr);
+
+    beacons[beaconsTotalCount].discoTime = timestamp;
+    beacons[beaconsTotalCount].rssi = -1 * rssi;
+
+    if(indexOfMacAddr != MAC_ADDR_NOT_FOUND)
+    {
+        beacons[beaconsTotalCount++].indexOfMacAddr = indexOfMacAddr;
+    }
+    else
+    {
+        memcpy(beaconsMacAddr[beaconsMacAddrCount].macAddr, macAddr, B_ADDR_LEN);
+        beacons[beaconsTotalCount++].indexOfMacAddr = beaconsMacAddrCount++;
+    }
+}
+
+bStatus_t BeaconsProfile_ClearMemory(void)
+{
+    ICall_free(beacons);
+    ICall_free(beaconsMacAddr);
+
+    beaconsMacAddrCount = 0;
+    beaconsTotalCount = 0;
+
+    beacons = ICall_malloc(sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
+    beaconsMacAddr = ICall_malloc(sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH);
+
+    if(beacons != NULL && beaconsMacAddr != NULL)
+        return SUCCESS;
+    else
+        return FAILURE;
+}
+
+/*
+ * @fn      BeaconsProfile_ArrayToBytes
+ *
+ * @brief   Function merges data from array to bytes.
+ *
+ * @param   array - pointer to an array with data
+ * @param   length - length of data in bytes
+ * @param   bytes - pointer to bytes where data will be stored after merge
+ *
+ * @return none
+ *
+ * */
+static void BeaconsProfile_ArrayToBytes(uint8* array, uint8 length, void* bytes)
+{
+
+    switch(length)
+    {
+        case 2:
+            {
+                *((uint16 *) bytes) = (array[0] << 8) + array[1];
+            }
+            break;
+        case 4:
+            {
+                *((uint32 *) bytes) = (array[0] << 24) + (array[1] << 16) + (array[2] << 8) + array[3];
+            }
+            break;
+    }
+}
+
+/*
+ * @fn      BeaconsProfile_BytesToArray
+ *
+ * @brief   Function splits bytes to an array.
+ *
+ * @param   data - pointer to bytes which should be split
+ * @param   length - length of data in bytes
+ * @param   array - pointer to an array where data will be splitted
+ *
+ * @return none
+ *
+ * */
+static void BeaconsProfile_BytesToArray(void* data, uint8 length, uint8* array)
+{
+    //if((length != 2 || length != 4) && length != LENGTH_OF_ARRAY(array))
+       // return;
+
+    switch(length)
+    {
+        case 2:
+            {
+                uint16 *pData = (uint16 *) data;
+
+                array[0] = (*pData >> 8) & 0xFF;
+                array[1] = *pData & 0xFF;
+            }
+            break;
+        case 4:
+            {
+                uint32 *pData = (uint32 *) data;
+
+                array[0] = (*pData >> 24) & 0xFF;
+                array[1] = (*pData >> 16) & 0xFF;
+                array[2] = (*pData >> 8) & 0xFF;
+                array[3] = *pData & 0xFF;
+            }
+            break;
+    }
 }
 
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
@@ -347,31 +520,59 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
         switch(uuid)
         {
             case BEACONS_DISCO_SCAN_UUID:
-            case BEACONS_LIST_TOTAL_COUNT_UUID:
                 *pLen = 1;
                 pValue[0] = *pAttr->pValue;
                 break;
+            case BEACONS_LIST_TOTAL_COUNT_UUID:
+                *pLen = BEACONS_TOTAL_COUNT_LENGTH;
+                if(beaconsTotalCount > 0)
+                {
+                    //uint8 data[BEACONS_TOTAL_COUNT_LENGTH];
+                    BeaconsProfile_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
+                    //memcpy(pValue, data, BEACONS_TOTAL_COUNT_LENGTH);
+                }
+                else
+                    memcpy(pValue, pAttr->pValue, BEACONS_TOTAL_COUNT_LENGTH);
+                break;
             case BEACONS_LIST_MAC_ADDR_UUID:
                 *pLen = B_ADDR_LEN;
-                if(beaconsListTotalCountValue > 0)
+                if(beaconsTotalCount > 0)
                 {
-                    memcpy(pValue, beacons[beaconsListGetRecordValue].macAddr, B_ADDR_LEN);
-                    /*uint8 i;
-                    for(i = 0; i < B_ADDR_LEN; i++)
-                    {
-                        pValue[i] = beacons[beaconsListGetRecordValue].macAddr[i];
-                    }*/
+                    uint8 index = beacons[beaconsSelectedIndex].indexOfMacAddr;
+                    memcpy(pValue, beaconsMacAddr[index].macAddr, B_ADDR_LEN);
                 }
                 else
                     memcpy(pValue, pAttr->pValue, B_ADDR_LEN);
                 break;
             case BEACONS_LIST_RSSI_UUID:
                 *pLen = 1;
-                //pValue[0] = *pAttr->pValue;
-                if(beaconsListTotalCountValue > 0)
-                    pValue[0] = beacons[beaconsListGetRecordValue].rssi;
+                if(beaconsTotalCount > 0)
+                    pValue[0] = beacons[beaconsSelectedIndex].rssi;
                 else
                     pValue[0] = *pAttr->pValue;
+                break;
+            case BEACONS_LIST_AGE_UUID:
+                *pLen = BEACONS_AGE_OF_RECORD_LENGTH;
+                if(beaconsTotalCount > 0)
+                {
+                    uint32_t actualTime = Timestamp_get32();
+                    uint32_t delta = (actualTime - beacons[beaconsSelectedIndex].discoTime) * 10; //desetiny sekund
+                    uint32_t time = delta / freq.lo;
+
+                    BeaconsProfile_BytesToArray(&time, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
+                    /*uint8 ageOfRecord[BEACONS_AGE_OF_RECORD_LENGTH];
+
+                    ageOfRecord[0] = (time >> 24) & 0xFF;
+                    ageOfRecord[1] = (time >> 16) & 0xFF;
+                    ageOfRecord[2] = (time >> 8) & 0xFF;
+                    ageOfRecord[3] = time & 0xFF;
+
+                    memcpy(pValue, ageOfRecord, BEACONS_AGE_OF_RECORD_LENGTH);*/
+                }
+                else
+                {
+                    memcpy(pValue, pAttr->pValue, BEACONS_AGE_OF_RECORD_LENGTH);
+                }
                 break;
             default:
                 *pLen = 0;
@@ -420,12 +621,14 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                     *pCurValue = pValue[0];
 
                     notifyApp = BEACONS_DISCO_SCAN;
+
+                    //BeaconsProfile_ClearMemory();
                 }
                 break;
             case BEACONS_LIST_GET_RECORD_UUID:
                 if(offset == 0)
                 {
-                    if(len != 1)
+                    if(len != 2)
                     {
                         status = ATT_ERR_INVALID_VALUE_SIZE;
                     }
@@ -437,10 +640,13 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
 
                 if(status == SUCCESS)
                 {
-                    if(pValue[0] < beaconsListTotalCountValue)
+                    uint16 index;
+                    BeaconsProfile_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
+                    if(index < beaconsTotalCount)
                     {
-                        uint8 *pCurValue = (uint8 *)pAttr->pValue;
-                        *pCurValue = pValue[0];
+                        //uint8 *pCurValue = (uint8 *)pAttr->pValue;
+                        //*pCurValue = pValue[0];
+                        beaconsSelectedIndex = index;
                     }
                 }
                 break;

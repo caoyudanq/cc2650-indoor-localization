@@ -14,4 +14,5 @@
 	<templateProperties value="id=simple_peripheral_observer_cc2650lp_app.projectspec.simple_peripheral_observer_cc2650lp_app,type=rtsc,products=com.ti.rtsc.TIRTOSCC13XX_CC26XX:2.20.01.08,xdcToolsVersion=3.32.00.06,target=ti.targets.arm.elf.M3,platform=ti.platforms.simplelink:CC2650F128,buildProfile=release,isHybrid=true,configuroOptions=--compileOptions &quot;${COMPILER_FLAGS} &quot; --xdcpath &quot;${TI_BLE_SDK_BASE} &quot;,"/>
 	<origin value="C:\ti\simplelink\ble_sdk_2_02_01_18\ble_examples-ble_examples-2.2\examples\cc2650lp\simple_peripheral_observer\ccs\app\simple_peripheral_observer_cc2650lp_app.projectspec"/>
 	<filesToOpen value=""/>
+	<isTargetManual value="false"/>
 </projectOptions>
