@@ -60,6 +60,11 @@ static const uint8_t beaconsListAgeOfRecordUUID[ATT_UUID_SIZE] =
      TI_BASE_UUID_128(BEACONS_LIST_AGE_UUID)
 };
 
+static const uint8_t beaconsListFlagOfMacUUID[ATT_UUID_SIZE] =
+{
+     TI_BASE_UUID_128(BEACONS_LIST_FLAG_OF_MAC_UUID)
+};
+
 
 static beaconsProfileCBs_t *beaconsProfile_AppCBs = NULL;
 static Types_FreqHz freq;
@@ -97,6 +102,10 @@ static uint8 beaconsListAgeOfRecordChar = GATT_PROP_READ;
 //static uint32_t beaconsListAgeOfRecordValue = 0;
 static uint8 beaconsListAgeOfRecordValue[BEACONS_AGE_OF_RECORD_LENGTH] = {0, 0, 0, 0};
 static uint8 beaconsListAgeOfRecordCharDesc[] = "Age of record in ms";
+
+static uint8 beaconsListFlagOfMacChar = GATT_PROP_READ;
+static uint8 beaconsListFlagOfMacValue = 0;
+static uint8 beaconsListFlagOfMacCharDesc[] = "Flag of more device were discovered";
 
 
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
@@ -251,6 +260,24 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            GATT_PERMIT_READ,
            0,
            beaconsListAgeOfRecordCharDesc
+      },
+      {
+           {ATT_BT_UUID_SIZE, characterUUID},
+           GATT_PERMIT_READ,
+           0,
+           &beaconsListFlagOfMacChar
+      },
+      {
+           {ATT_UUID_SIZE, beaconsListFlagOfMacUUID},
+           GATT_PERMIT_READ,
+           0,
+           &beaconsListFlagOfMacValue
+      },
+      {
+           {ATT_BT_UUID_SIZE, charUserDescUUID},
+           GATT_PERMIT_READ,
+           0,
+           beaconsListFlagOfMacCharDesc
       }
 };
 
@@ -347,7 +374,7 @@ void* BeaconsProfile_GetParameter(uint8 param)
         case BEACONS_LIST_GET_RECORD:
             return &beaconsListGetRecordValue;
         case BEACONS_LIST_TOTAL_COUNT:
-            return &beaconsListTotalCountValue;
+            return &beaconsTotalCount;
         case BEACONS_LIST_ALL_RECORDS:
             //memcpy(value, beacons, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
             return beacons;
@@ -393,13 +420,16 @@ static int16 BeaconsProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
 
 void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp)
 {
-    if(beaconsMacAddrCount == BEACONS_MAC_ADDR_LENGTH)
-        //nastavit priznak, ze bylo nalezeno vice beaconu
-        return;
-
-    //Kontrolovat celkovy pocet zaznamu
-
     int16 indexOfMacAddr = BeaconsProfile_FindMacAddr(macAddr);
+
+    if(beaconsMacAddrCount == BEACONS_MAC_ADDR_LENGTH && indexOfMacAddr == MAC_ADDR_NOT_FOUND)
+    {
+        beaconsListFlagOfMacValue = 1;
+        return;
+    }
+
+    if(beaconsTotalCount == DEFAULT_MAX_SCAN_RES)
+        return;
 
     beacons[beaconsTotalCount].discoTime = timestamp;
     beacons[beaconsTotalCount].rssi = -1 * rssi;
@@ -419,6 +449,8 @@ void BeaconsProfile_ClearMemory(void)
 {
     beaconsMacAddrCount = 0;
     beaconsTotalCount = 0;
+    beaconsListFlagOfMacValue = 0;
+    beaconsSelectedIndex = 0;
 }
 
 /*
@@ -507,6 +539,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
         switch(uuid)
         {
             case BEACONS_DISCO_SCAN_UUID:
+            case BEACONS_LIST_FLAG_OF_MAC_UUID:
                 *pLen = 1;
                 pValue[0] = *pAttr->pValue;
                 break;

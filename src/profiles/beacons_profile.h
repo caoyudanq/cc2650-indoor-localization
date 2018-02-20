@@ -11,6 +11,7 @@
 #define BEACONS_LIST_MAC_ADDR_UUID          0xB300
 #define BEACONS_LIST_RSSI_UUID              0xB400
 #define BEACONS_LIST_AGE_UUID               0xB500
+#define BEACONS_LIST_FLAG_OF_MAC_UUID       0xB600
 
 #define BEACONS_DISCO_SCAN                  0
 #define BEACONS_LIST_GET_RECORD             1

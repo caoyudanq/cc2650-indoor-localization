@@ -746,11 +746,12 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
 
         beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
         macAddr * mac = BeaconsProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
+        uint16 * totalCount = (uint16 *) BeaconsProfile_GetParameter(BEACONS_LIST_TOTAL_COUNT);
 
         //System_printf("================END================");
 
         uint8 i;
-        for(i = 0; i < rspCount; i++) {
+        for(i = 0; i < *totalCount; i++) {
             uint8 index = devices[i].indexOfMacAddr;
             System_printf("\nMAC: %s RSSI: %d", Util_convertBdAddr2Str(mac[index].macAddr), devices[i].rssi);
         }
