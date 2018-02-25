@@ -57,13 +57,7 @@
 #include "gapgattserver.h"
 #include "gattservapp.h"
 #include "devinfoservice.h"
-#include "simple_gatt_profile.h"
 #include "beacons_profile.h"
-
-/*#if defined(FEATURE_OAD) || defined(IMAGE_INVALIDATE)
-#include "oad_target.h"
-#include "oad.h"
-#endif //FEATURE_OAD || IMAGE_INVALIDATE*/
 
 #include "peripheral_observer.h"
 #include "gapbondmgr.h"
@@ -97,7 +91,6 @@
 // General discoverable mode advertises indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
 
-#ifndef FEATURE_OAD
 // Minimum connection interval (units of 1.25ms, 80=100ms) if automatic
 // parameter update request is enabled
 #define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
@@ -105,15 +98,6 @@
 // Maximum connection interval (units of 1.25ms, 800=1000ms) if automatic
 // parameter update request is enabled
 #define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
-#else //!FEATURE_OAD
-// Minimum connection interval (units of 1.25ms, 8=10ms) if automatic
-// parameter update request is enabled
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     8
-
-// Maximum connection interval (units of 1.25ms, 8=10ms) if automatic
-// parameter update request is enabled
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     8
-#endif // FEATURE_OAD
 
 // Slave latency to use if automatic parameter update request is enabled
 #define DEFAULT_DESIRED_SLAVE_LATENCY         0
@@ -267,23 +251,6 @@ static uint8_t advertData[] =
   0x02,   // length of this data
   GAP_ADTYPE_FLAGS,
   DEFAULT_DISCOVERABLE_MODE | GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
-
-  // service UUID, to notify central devices what services are included
-  // in this peripheral
-#if !defined(FEATURE_OAD) || defined(FEATURE_OAD_ONCHIP)
-  0x03,   // length of this data
-#else //OAD for external flash
-  0x05,  // lenght of this data
-#endif //FEATURE_OAD
-  GAP_ADTYPE_16BIT_MORE,      // some of the UUID's, but not all
-#ifdef FEATURE_OAD
-  LO_UINT16(OAD_SERVICE_UUID),
-  HI_UINT16(OAD_SERVICE_UUID),
-#endif //FEATURE_OAD
-#ifndef FEATURE_OAD_ONCHIP
-  LO_UINT16(SIMPLEPROFILE_SERV_UUID),
-  HI_UINT16(SIMPLEPROFILE_SERV_UUID)
-#endif //FEATURE_OAD_ONCHIP
 };
 
 // GAP GATT Attributes
@@ -326,9 +293,7 @@ static void SimpleBLEPeripheral_sendAttRsp(void);
 static void SimpleBLEPeripheral_freeAttRsp(uint8_t status);
 
 static void SimpleBLEPeripheral_stateChangeCB(gaprole_States_t newState);
-#ifndef FEATURE_OAD_ONCHIP
 static void SimpleBLEPeripheral_charValueChangeCB(uint8_t paramID);
-#endif //!FEATURE_OAD_ONCHIP
 static void SimpleBLEPeripheral_enqueueMsg(uint8_t event, uint8_t state, uint8_t *pData);
 
 
@@ -1313,7 +1278,6 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
   //gapProfileState = newState;
 }
 
-#ifndef FEATURE_OAD_ONCHIP
 /*********************************************************************
  * @fn      SimpleBLEPeripheral_charValueChangeCB
  *
@@ -1328,7 +1292,6 @@ static void SimpleBLEPeripheral_charValueChangeCB(uint8_t paramID)
 {
   SimpleBLEPeripheral_enqueueMsg(SBP_CHAR_CHANGE_EVT, paramID, NULL);
 }
-#endif //!FEATURE_OAD_ONCHIP
 
 /*********************************************************************
  * @fn      SimpleBLEPeripheral_processCharValueChangeEvt
