@@ -108,7 +108,7 @@
 
 // Whether to enable automatic parameter update request when a connection is
 // formed
-#define DEFAULT_ENABLE_UPDATE_REQUEST         TRUE
+#define DEFAULT_ENABLE_UPDATE_REQUEST         FALSE//TRUE
 
 // Connection Pause Peripheral time value (in seconds)
 #define DEFAULT_CONN_PAUSE_PERIPHERAL         6
@@ -122,7 +122,7 @@
 //#define DEFAULT_MAX_SCAN_RES                  20//8
 
 // Scan duration in ms
-#define DEFAULT_SCAN_DURATION                 2000
+#define DEFAULT_SCAN_DURATION                 25500
 
 // Scan interval in ms
 #define DEFAULT_SCAN_INTERVAL                 10
@@ -267,7 +267,7 @@ static uint8_t deviceInfoCnt = 0;
 
 static beaconRecord *discoveredBeacons = NULL;
 static uint8 discoBeaconsCount = 0;
-static uint8 rspCount = 0;
+static uint16 rspCount = 0;
 
 const char *AdvTypeStrings[] = {"Connectable undirected","Connectable directed", "Scannable undirected", "Non-connectable undirected", "Scan response"};
 /*********************************************************************
@@ -411,7 +411,7 @@ static void SimpleBLEPeripheral_init(void)
 #ifdef PLUS_OBSERVER
   //Setup GAP Observer params
   {
-    uint8_t scanRes = DEFAULT_MAX_SCAN_RES;
+    uint8_t scanRes = 8;
 
     GAPRole_SetParameter(GAPROLE_MAX_SCAN_RES, sizeof(uint8_t),
                                 &scanRes);
@@ -469,6 +469,8 @@ static void SimpleBLEPeripheral_init(void)
                          &desiredSlaveLatency);
     GAPRole_SetParameter(GAPROLE_TIMEOUT_MULTIPLIER, sizeof(uint16_t),
                          &desiredConnTimeout);
+
+    GAPRole_SetParameter(GAPROLE_PARAM_UPDATE_REQ, sizeof(uint8_t), &enableUpdateRequest);
   }
 
   // Set the GAP Characteristics
@@ -522,8 +524,6 @@ static void SimpleBLEPeripheral_init(void)
   HCI_LE_ReadMaxDataLenCmd();
 
   Display_print0(dispHandle, 0, 1, "CC2650-Indoor");
-
-  Display_print1(dispHandle, 11, 0, "Size: %d", sizeof(uint32));
 }
 
 /*********************************************************************
