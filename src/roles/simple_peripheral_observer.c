@@ -262,11 +262,8 @@ static uint8_t rspTxRetry = 0;
 
 #ifdef PLUS_OBSERVER
 static bool scanningStarted = FALSE;
-static uint8_t deviceInfoCnt = 0;
 #endif
 
-static beaconRecord *discoveredBeacons = NULL;
-static uint8 discoBeaconsCount = 0;
 static uint16 rspCount = 0;
 
 const char *AdvTypeStrings[] = {"Connectable undirected","Connectable directed", "Scannable undirected", "Non-connectable undirected", "Scan response"};
@@ -337,15 +334,11 @@ void SimpleBLEPeripheral_startDiscovery(void)
     if(status == SUCCESS)
     {
         Display_print0(dispHandle, 4, 0, "Scanning On");
-        //System_printf("\nScanning On");
     }
     else
     {
-        Display_print1(dispHandle, 4, 0, "Scanning Off: %d", status);
-        //System_printf("\nScanning Off: %d", status);
+        Display_print1(dispHandle, 4, 0, "Scanning Fail:%d", status);
     }
-
-    //System_flush();
 }
 
 /*********************************************************************
@@ -486,6 +479,7 @@ static void SimpleBLEPeripheral_init(void)
     GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MAX, advInt);
   }
 
+  #ifdef PLUS_BOND_MANAGER
   // Setup the GAP Bond Manager
   {
     uint32_t passkey = 0; // passkey "000000"
@@ -501,7 +495,7 @@ static void SimpleBLEPeripheral_init(void)
     GAPBondMgr_SetParameter(GAPBOND_IO_CAPABILITIES, sizeof(uint8_t), &ioCap);
     GAPBondMgr_SetParameter(GAPBOND_BONDING_ENABLED, sizeof(uint8_t), &bonding);
   }
-
+  #endif
    // Initialize GATT attributes
   GGS_AddService(GATT_ALL_SERVICES);           // GAP
   GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT attributes
@@ -664,29 +658,6 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
       {
         Display_print1(dispHandle, 7, 0, "RspCount: %d", ++rspCount);
         BeaconsProfile_AddBeaconRecord(pEvent->deviceInfo.addr, pEvent->deviceInfo.rssi, Timestamp_get32());
-        /*
-        System_printf("\nMAC: ");
-        System_printf(Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
-        System_printf(" RSSI: %d", pEvent->deviceInfo.rssi);
-        System_flush();
-        */
-        //Print scan response data otherwise advertising data
-        if(pEvent->deviceInfo.eventType == GAP_ADRPT_SCAN_RSP)
-        {         
-            //Display_print1(dispHandle, 4, 0, "Scan Response Addr: %s", Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
-          //Display_print1(dispHandle, 5, 0, "Scan Response Data: %s", Util_convertBytes2Str(pEvent->deviceInfo.pEvtData, pEvent->deviceInfo.dataLen));
-        }
-        else
-        {
-          //deviceInfoCnt++;
-          //Display_print2(dispHandle, 6, 0, "Advertising Addr: %s Advertising Type: %s", Util_convertBdAddr2Str(pEvent->deviceInfo.addr), AdvTypeStrings[pEvent->deviceInfo.eventType]);
-          //Display_print1(dispHandle, 7, 0, "Advertising Data: %s", Util_convertBytes2Str(pEvent->deviceInfo.pEvtData, pEvent->deviceInfo.dataLen));
-
-          /*System_printf("\nMAC: ");
-          System_printf(Util_convertBdAddr2Str(pEvent->deviceInfo.addr));
-          System_printf(" RSSI: %d", pEvent->deviceInfo.rssi);
-          System_flush();*/
-        }
         
         ICall_free(pEvent->deviceInfo.pEvtData);
         ICall_free(pEvent);
@@ -697,31 +668,21 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
       {
         // discovery complete
         //scanningStarted = FALSE;
-        //deviceInfoCnt = 0;
 
-        //Display_print0(dispHandle, 7, 0, "GAP_DEVICE_DISC_EVENT");
-        //Display_print1(dispHandle, 5, 0, "Devices discovered: %d", pEvent->discCmpl.numDevs);
         Display_print0(dispHandle, 4, 0, "Scanning Off");
-        //System_printf("\nDevices discovered: %d - Count: %d", pEvent->discCmpl.numDevs, discoBeaconsCount);
-        //System_flush();
-
-
         BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint8), 0);
-        //BeaconsProfile_SetParameter(BEACONS_LIST_GET_RECORD, sizeof(uint16), 0);
 
-        beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
-        macAddr * mac = BeaconsProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
-        uint16 * totalCount = (uint16 *) BeaconsProfile_GetParameter(BEACONS_LIST_TOTAL_COUNT);
+        #ifdef CONSOLE_OUTPUT
+            beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
+            macAddr * mac = BeaconsProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
+            uint16 * totalCount = (uint16 *) BeaconsProfile_GetParameter(BEACONS_LIST_TOTAL_COUNT);
 
-        //System_printf("================END================");
-
-        uint8 i;
-        for(i = 0; i < *totalCount; i++) {
-            uint8 index = devices[i].indexOfMacAddr;
-            System_printf("\nMAC: %s RSSI: %d", Util_convertBdAddr2Str(mac[index].macAddr), devices[i].rssi);
-        }
-        System_flush();
-
+            for(uint8 i = 0; i < *totalCount; i++) {
+                uint8 index = devices[i].indexOfMacAddr;
+                System_printf("\nMAC: %s RSSI: %d", Util_convertBdAddr2Str(mac[index].macAddr), devices[i].rssi);
+            }
+            System_flush();
+        #endif
         rspCount = 0;
 
         ICall_free(pEvent->discCmpl.pDevList);
@@ -1120,10 +1081,6 @@ static void SimpleBLEPeripheral_stateChangeCB(gaprole_States_t newState)
  */
 static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
 {
-#ifdef PLUS_BROADCASTER
-  static bool firstConnFlag = false;
-#endif // PLUS_BROADCASTER
-
   switch ( newState )
   {
     case GAPROLE_STARTED:
@@ -1159,34 +1116,6 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
       Display_print0(dispHandle, 2, 0, "Advertising");
       break;
 
-#ifdef PLUS_BROADCASTER
-    /* After a connection is dropped a device in PLUS_BROADCASTER will continue
-     * sending non-connectable advertisements and shall sending this change of
-     * state to the application.  These are then disabled here so that sending
-     * connectable advertisements can resume.
-     */
-    case GAPROLE_ADVERTISING_NONCONN:
-      {
-        uint8_t advertEnabled = FALSE;
-
-        // Disable non-connectable advertising.
-        GAPRole_SetParameter(GAPROLE_ADV_NONCONN_ENABLED, sizeof(uint8_t),
-                           &advertEnabled);
-
-        advertEnabled = TRUE;
-
-        // Enabled connectable advertising.
-        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
-                             &advertEnabled);
-
-        // Reset flag for next connection.
-        firstConnFlag = false;
-
-        SimpleBLEPeripheral_freeAttRsp(bleNotConnected);
-      }
-      break;
-#endif //PLUS_BROADCASTER
-
     case GAPROLE_CONNECTED:
       {
         linkDBInfo_t linkInfo;
@@ -1212,28 +1141,6 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
           Display_print0(dispHandle, 2, 0, "Connected");
           Display_print0(dispHandle, 3, 0, Util_convertBdAddr2Str(peerAddress));
         }
-
-        #ifdef PLUS_BROADCASTER
-          // Only turn advertising on for this state when we first connect
-          // otherwise, when we go from connected_advertising back to this state
-          // we will be turning advertising back on.
-          if (firstConnFlag == false)
-          {
-            uint8_t advertEnabled = FALSE; // Turn on Advertising
-
-            // Disable connectable advertising.
-            GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
-                                 &advertEnabled);
-
-            // Set to true for non-connectabel advertising.
-            advertEnabled = TRUE;
-
-            // Enable non-connectable advertising.
-            GAPRole_SetParameter(GAPROLE_ADV_NONCONN_ENABLED, sizeof(uint8_t),
-                                 &advertEnabled);
-            firstConnFlag = true;
-          }
-        #endif // PLUS_BROADCASTER
       }
       break;
 
@@ -1258,11 +1165,6 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
 
       // Clear remaining lines
       Display_clearLines(dispHandle, 3, 5);
-
-      #ifdef PLUS_BROADCASTER
-        // Reset flag for next connection.
-        firstConnFlag = false;
-      #endif //#ifdef (PLUS_BROADCASTER)
       break;
 
     case GAPROLE_ERROR:

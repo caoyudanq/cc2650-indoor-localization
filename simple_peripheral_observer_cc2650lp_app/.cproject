@@ -74,6 +74,8 @@
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.compilerID.DEFINE.2026612880" name="Pre-define NAME (--define, -D)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.compilerID.DEFINE" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="${COM_TI_RTSC_TIRTOSCC13XX_CC26XX_SYMBOLS}"/>
+									<listOptionValue builtIn="false" value="CONSOLE_OUTPUT"/>
+									<listOptionValue builtIn="false" value="xPLUS_BOND_MANAGER"/>
 									<listOptionValue builtIn="false" value="USE_ICALL"/>
 									<listOptionValue builtIn="false" value="MAX_PDU_SIZE=27"/>
 									<listOptionValue builtIn="false" value="PLUS_OBSERVER"/>
@@ -82,14 +84,12 @@
 									<listOptionValue builtIn="false" value="HEAPMGR_SIZE=0"/>
 									<listOptionValue builtIn="false" value="xDisplay_DISABLE_ALL"/>
 									<listOptionValue builtIn="false" value="BOARD_DISPLAY_EXCLUDE_UART"/>
-									<listOptionValue builtIn="false" value="xBOARD_DISPLAY_EXCLUDE_LCD"/>
 									<listOptionValue builtIn="false" value="GAPperipheralROLE_NUM_RSSI_LINKS=1"/>
 									<listOptionValue builtIn="false" value="ICALL_MAX_NUM_TASKS=3"/>
 									<listOptionValue builtIn="false" value="ICALL_MAX_NUM_ENTITIES=6"/>
 									<listOptionValue builtIn="false" value="xdc_runtime_Assert_DISABLE_ALL"/>
 									<listOptionValue builtIn="false" value="xdc_runtime_Log_DISABLE_ALL"/>
 									<listOptionValue builtIn="false" value="CC2650STK"/>
-									<listOptionValue builtIn="false" value="xCC2650_LAUNCHXL"/>
 									<listOptionValue builtIn="false" value="CC26XXWARE"/>
 									<listOptionValue builtIn="false" value="CC26XX"/>
 								</option>
