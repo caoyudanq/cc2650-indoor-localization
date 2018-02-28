@@ -453,76 +453,6 @@ void BeaconsProfile_ClearMemory(void)
     beaconsSelectedIndex = 0;
 }
 
-/*
- * @fn      BeaconsProfile_ArrayToBytes
- *
- * @brief   Function merges data from array to bytes.
- *
- * @param   array - pointer to an array with data
- * @param   length - length of data in bytes
- * @param   bytes - pointer to bytes where data will be stored after merge
- *
- * @return none
- *
- * */
-static void BeaconsProfile_ArrayToBytes(uint8* array, uint8 length, void* bytes)
-{
-
-    switch(length)
-    {
-        case 2:
-            {
-                *((uint16 *) bytes) = (array[0] << 8) + array[1];
-            }
-            break;
-        case 4:
-            {
-                *((uint32 *) bytes) = (array[0] << 24) + (array[1] << 16) + (array[2] << 8) + array[3];
-            }
-            break;
-    }
-}
-
-/*
- * @fn      BeaconsProfile_BytesToArray
- *
- * @brief   Function splits bytes to an array.
- *
- * @param   data - pointer to bytes which should be split
- * @param   length - length of data in bytes
- * @param   array - pointer to an array where data will be splitted
- *
- * @return none
- *
- * */
-static void BeaconsProfile_BytesToArray(void* data, uint8 length, uint8* array)
-{
-    //if((length != 2 || length != 4) && length != LENGTH_OF_ARRAY(array))
-       // return;
-
-    switch(length)
-    {
-        case 2:
-            {
-                uint16 *pData = (uint16 *) data;
-
-                array[0] = (*pData >> 8) & 0xFF;
-                array[1] = *pData & 0xFF;
-            }
-            break;
-        case 4:
-            {
-                uint32 *pData = (uint32 *) data;
-
-                array[0] = (*pData >> 24) & 0xFF;
-                array[1] = (*pData >> 16) & 0xFF;
-                array[2] = (*pData >> 8) & 0xFF;
-                array[3] = *pData & 0xFF;
-            }
-            break;
-    }
-}
-
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
                                           uint8_t *pValue, uint16_t *pLen, uint16_t offset,
                                           uint16_t maxLen, uint8_t method)
@@ -548,7 +478,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 if(beaconsTotalCount > 0)
                 {
                     //uint8 data[BEACONS_TOTAL_COUNT_LENGTH];
-                    BeaconsProfile_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
+                    Tools_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
                     //memcpy(pValue, data, BEACONS_TOTAL_COUNT_LENGTH);
                 }
                 else
@@ -579,7 +509,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                     uint32_t delta = (actualTime - beacons[beaconsSelectedIndex].discoTime) * 10; //desetiny sekund
                     uint32_t time = delta / freq.lo;
 
-                    BeaconsProfile_BytesToArray(&time, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
+                    Tools_BytesToArray(&time, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
                     /*uint8 ageOfRecord[BEACONS_AGE_OF_RECORD_LENGTH];
 
                     ageOfRecord[0] = (time >> 24) & 0xFF;
@@ -661,7 +591,7 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                 if(status == SUCCESS)
                 {
                     uint16 index;
-                    BeaconsProfile_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
+                    Tools_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
                     if(index < beaconsTotalCount)
                     {
                         //uint8 *pCurValue = (uint8 *)pAttr->pValue;
