@@ -329,7 +329,7 @@ static beaconsProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
 
 void SimpleBLEPeripheral_startDiscovery(void)
 {
-    BeaconsProfile_ClearMemory();
+    BeaconsProfile_ResetCounters();
 
     bStatus_t status = GAPObserverRole_StartDiscovery(DEFAULT_DISCOVERY_MODE,
                                                       DEFAULT_DISCOVERY_ACTIVE_SCAN,

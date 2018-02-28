@@ -357,6 +357,26 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
                 status = bleInvalidRange;
             }
             break;
+        case BEACONS_LIST_MAC_ADDR:
+            if(len == (sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH))
+            {
+                memcpy(beaconsMacAddr, value, sizeof(macAddr) * BEACONS_MAC_ADDR_LENGTH);
+            }
+            else
+            {
+                status = bleInvalidRange;
+            }
+            break;
+        case BEACONS_LIST_FLAG_OF_MAC:
+            if(len == sizeof(uint8))
+            {
+                beaconsListFlagOfMacValue = *((uint8 *) value);
+            }
+            else
+            {
+                status = bleInvalidRange;
+            }
+            break;
         default:
             status = INVALIDPARAMETER;
             break;
@@ -376,34 +396,14 @@ void* BeaconsProfile_GetParameter(uint8 param)
         case BEACONS_LIST_TOTAL_COUNT:
             return &beaconsTotalCount;
         case BEACONS_LIST_ALL_RECORDS:
-            //memcpy(value, beacons, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
             return beacons;
         case BEACONS_LIST_MAC_ADDR:
             return beaconsMacAddr;
+        case BEACONS_LIST_FLAG_OF_MAC:
+            return &beaconsListFlagOfMacValue;
         default:
             return NULL;
     }
-
-    /*switch(param)
-    {
-        case BEACONS_DISCO_SCAN:
-            *((uint8 *) value) = beaconsDiscoScanValue;
-            break;
-        case BEACONS_LIST_GET_RECORD:
-            *((uint8 *) value) = beaconsListGetRecordValue;
-            break;
-        case BEACONS_LIST_TOTAL_COUNT:
-            *((uint8 *) value) = beaconsListTotalCountValue;
-            break;
-        case BEACONS_LIST_ALL_RECORDS:
-            memcpy(value, beacons, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
-            break;
-        default:
-            status = INVALIDPARAMETER;
-            break;
-    }*/
-
-    //return status;
 }
 
 static int16 BeaconsProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
@@ -445,7 +445,7 @@ void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32
     }
 }
 
-void BeaconsProfile_ClearMemory(void)
+void BeaconsProfile_ResetCounters(void)
 {
     beaconsMacAddrCount = 0;
     beaconsTotalCount = 0;
@@ -475,14 +475,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 break;
             case BEACONS_LIST_TOTAL_COUNT_UUID:
                 *pLen = BEACONS_TOTAL_COUNT_LENGTH;
-                if(beaconsTotalCount > 0)
-                {
-                    //uint8 data[BEACONS_TOTAL_COUNT_LENGTH];
-                    Tools_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
-                    //memcpy(pValue, data, BEACONS_TOTAL_COUNT_LENGTH);
-                }
-                else
-                    memcpy(pValue, pAttr->pValue, BEACONS_TOTAL_COUNT_LENGTH);
+                Tools_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
                 break;
             case BEACONS_LIST_MAC_ADDR_UUID:
                 *pLen = B_ADDR_LEN;
@@ -510,14 +503,6 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                     uint32_t time = delta / freq.lo;
 
                     Tools_BytesToArray(&time, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
-                    /*uint8 ageOfRecord[BEACONS_AGE_OF_RECORD_LENGTH];
-
-                    ageOfRecord[0] = (time >> 24) & 0xFF;
-                    ageOfRecord[1] = (time >> 16) & 0xFF;
-                    ageOfRecord[2] = (time >> 8) & 0xFF;
-                    ageOfRecord[3] = time & 0xFF;
-
-                    memcpy(pValue, ageOfRecord, BEACONS_AGE_OF_RECORD_LENGTH);*/
                 }
                 else
                 {
@@ -572,13 +557,12 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
 
                     notifyApp = BEACONS_DISCO_SCAN;
 
-                    //BeaconsProfile_ClearMemory();
                 }
                 break;
             case BEACONS_LIST_GET_RECORD_UUID:
                 if(offset == 0)
                 {
-                    if(len != 2)
+                    if(len != BEACONS_TOTAL_COUNT_LENGTH)
                     {
                         status = ATT_ERR_INVALID_VALUE_SIZE;
                     }
@@ -594,8 +578,6 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                     Tools_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
                     if(index < beaconsTotalCount)
                     {
-                        //uint8 *pCurValue = (uint8 *)pAttr->pValue;
-                        //*pCurValue = pValue[0];
                         beaconsSelectedIndex = index;
                     }
                 }

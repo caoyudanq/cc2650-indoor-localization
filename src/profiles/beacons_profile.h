@@ -18,6 +18,7 @@
 #define BEACONS_LIST_TOTAL_COUNT            2
 #define BEACONS_LIST_ALL_RECORDS            3
 #define BEACONS_LIST_MAC_ADDR               4
+#define BEACONS_LIST_FLAG_OF_MAC            5
 
 #define BEACONS_TOTAL_COUNT_LENGTH          2
 #define BEACONS_AGE_OF_RECORD_LENGTH        4
@@ -54,4 +55,4 @@ extern bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *valu
 extern void* BeaconsProfile_GetParameter(uint8 param);
 extern bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCalbacks);
 extern void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp);
-extern void BeaconsProfile_ClearMemory(void);
+extern void BeaconsProfile_ResetCounters(void);
