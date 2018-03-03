@@ -1,16 +1,15 @@
 /******************************************************************************
 
- @file  simple_peripheral_observer.h
+ @file  ccfg_app_ble.c
 
- @brief This file contains the Simple BLE Peripheral sample application
-        definitions and prototypes.
+ @brief Customer Configuration CC26xx PG2 device family.
 
  Group: WCS, BTS
  Target Device: CC2650, CC2640, CC1350
 
  ******************************************************************************
  
- Copyright (c) 2013-2016, Texas Instruments Incorporated
+ Copyright (c) 2014-2016, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -40,51 +39,34 @@
  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+ ******************************************************************************
+ Release Name: ble_sdk_2_02_01_18
+ Release Date: 2016-10-26 15:20:04
  *****************************************************************************/
 
-#ifndef SIMPLEBLEPERIPHERAL_H
-#define SIMPLEBLEPERIPHERAL_H
+//
+//       ===> READ THIS BEFORE MODIFYING THIS FILE
+//
+//
+//       ===> READ THIS BEFORE MODIFYING THIS FILE
+//
+//
+//       ===> READ THIS BEFORE MODIFYING THIS FILE
+//
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+// The customer configuration area (ccfg section) is located at the end of the
+// flash and reflect the hw configuration of the device. it is very important
+// that it remains align with the version of driverlib you are using.
+// all BLE project except sensor tag use the same configuration.
+// Keeping the "#include <startup_files/ccfg.c>" guarantee that your project using
+// driverlib and the ccfg area will be align.
 
-/*********************************************************************
- * INCLUDES
- */
+// you can modify it if you want, the recommend way will be to remove the
+// bellow include, copy the content of the <startup_files/ccfg.c> file in this
+// file and rebuild.
 
-/*********************************************************************
-*  EXTERNAL VARIABLES
-*/
+// ==> KEEP IN MIND that if you do so, be sure that any further update of the
+// driverlib must be align with your modified version of ccfg area.
+#define SET_CCFG_SIZE_AND_DIS_FLAGS_DIS_GPRAM  0x0 /* Enable GPRAM */
 
-/*********************************************************************
- * CONSTANTS
- */
-
-#define DEFAULT_MAX_SCAN_RES                  850
-
-/*********************************************************************
- * MACROS
- */
-
-/*********************************************************************
- * FUNCTIONS
- */
-
-/*
- * Task creation function for the Simple BLE Peripheral.
- */
-extern void SimpleBLEPeripheral_createTask(void);
-
-extern void SimpleBLEPeripheral_startDiscovery(void);
-
-
-/*********************************************************************
-*********************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* SIMPLEBLEPERIPHERAL_H */
+#include <startup_files/ccfg.c>

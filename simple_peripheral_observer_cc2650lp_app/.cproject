@@ -68,13 +68,14 @@
 									<listOptionValue builtIn="false" value="&quot;${CC26XXWARE}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${TI_RTOS_DRIVERS_BASE}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${TI_RTOS_DRIVERS_BASE}/ti/mw/display&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_LOC}/../src&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_LOC}/../src/profiles&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_LOC}/../src/tools&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.compilerID.DEFINE.2026612880" name="Pre-define NAME (--define, -D)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.compilerID.DEFINE" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="${COM_TI_RTSC_TIRTOSCC13XX_CC26XX_SYMBOLS}"/>
-									<listOptionValue builtIn="false" value="CONSOLE_OUTPUT"/>
+									<listOptionValue builtIn="false" value="xCONSOLE_OUTPUT"/>
 									<listOptionValue builtIn="false" value="xPLUS_BOND_MANAGER"/>
 									<listOptionValue builtIn="false" value="USE_ICALL"/>
 									<listOptionValue builtIn="false" value="MAX_PDU_SIZE=27"/>
@@ -131,7 +132,7 @@
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.LIBRARY.385531992" name="Include library file or command file as input (--library, -l)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.LIBRARY" valueType="libs">
 									<listOptionValue builtIn="false" value="${COM_TI_RTSC_TIRTOSCC13XX_CC26XX_LIBRARIES}"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_IMPORT_LOC}/../config/ccs_linker_defines.cmd&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SRC_EX}/common/cc26xx/ccs/cc26xx_app.cmd&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${PROJECT_LOC}/../src/common/cc26xx_app.cmd&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${CC26XXWARE}/driverlib/bin/ccs/driverlib.lib&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ROM}/common_rom_releases/03282014/common_rom.symbols&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;libc.a&quot;"/>
@@ -150,6 +151,7 @@
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.DISPLAY_ERROR_NUMBER.1355758357" name="Emit diagnostic identifier numbers (--display_error_number)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.DISPLAY_ERROR_NUMBER" value="true" valueType="boolean"/>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.XML_LINK_INFO.1914316211" name="Detailed link information data-base into &lt;file&gt; (--xml_link_info, -xml_link_info)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.XML_LINK_INFO" value="&quot;${ProjName}_linkInfo.xml&quot;" valueType="string"/>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.UNUSED_SECTION_ELIMINATION.1642581139" name="Eliminate sections not needed in the executable (--unused_section_elimination)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.UNUSED_SECTION_ELIMINATION" value="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.UNUSED_SECTION_ELIMINATION.on" valueType="enumerated"/>
+								<option id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.DEFINE.1164484909" name="Pre-define preprocessor macro _name_ to _value_ (--define)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.linkerID.DEFINE" valueType="definedSymbols"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__CMD_SRCS.543478004" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__CMD_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__CMD2_SRCS.1052385387" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__CMD2_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__GEN_CMDS.109415990" name="Generated Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.TMS470_16.9.exeLinker.inputType__GEN_CMDS"/>
@@ -354,7 +356,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="TOOLS/cc26xx_app.cmd|TOOLS/ccs_linker_defines.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="TOOLS/ccs_linker_defines.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -56,7 +56,6 @@
 #include "linkdb.h"
 #include "gapgattserver.h"
 #include "gattservapp.h"
-#include "devinfoservice.h"
 #include "beacons_profile.h"
 
 #include "peripheral_observer.h"
@@ -1086,25 +1085,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
     case GAPROLE_STARTED:
       {
         uint8_t ownAddress[B_ADDR_LEN];
-        uint8_t systemId[DEVINFO_SYSTEM_ID_LEN];
-
         GAPRole_GetParameter(GAPROLE_BD_ADDR, ownAddress);
-
-        // use 6 bytes of device address for 8 bytes of system ID value
-        systemId[0] = ownAddress[0];
-        systemId[1] = ownAddress[1];
-        systemId[2] = ownAddress[2];
-
-        // set middle bytes to zero
-        systemId[4] = 0x00;
-        systemId[3] = 0x00;
-
-        // shift three bytes up
-        systemId[7] = ownAddress[5];
-        systemId[6] = ownAddress[4];
-        systemId[5] = ownAddress[3];
-
-        DevInfo_SetParameter(DEVINFO_SYSTEM_ID, DEVINFO_SYSTEM_ID_LEN, systemId);
 
         // Display device address
         Display_print0(dispHandle, 1, 0, Util_convertBdAddr2Str(ownAddress));

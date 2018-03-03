@@ -217,16 +217,6 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/profiles/beacons_profile.h</locationURI>
 		</link>
 		<link>
-			<name>Profiles/devinfoservice.c</name>
-			<type>1</type>
-			<locationURI>SRC_EX/profiles/dev_info/cc26xx/devinfoservice.c</locationURI>
-		</link>
-		<link>
-			<name>Profiles/devinfoservice.h</name>
-			<type>1</type>
-			<locationURI>SRC_EX/profiles/dev_info/devinfoservice.h</locationURI>
-		</link>
-		<link>
 			<name>Profiles/gatt_profile_uuid.h</name>
 			<type>1</type>
 			<locationURI>SRC_EX/inc/gatt_profile_uuid.h</locationURI>
@@ -257,16 +247,6 @@
 			<locationURI>PARENT-5-PROJECT_IMPORT_LOC/src/profiles/roles/cc26xx/peripheral_observer.h</locationURI>
 		</link>
 		<link>
-			<name>Profiles/simple_gatt_profile.c</name>
-			<type>1</type>
-			<locationURI>SRC_EX/profiles/simple_profile/cc26xx/simple_gatt_profile.c</locationURI>
-		</link>
-		<link>
-			<name>Profiles/simple_gatt_profile.h</name>
-			<type>1</type>
-			<locationURI>SRC_EX/profiles/simple_profile/simple_gatt_profile.h</locationURI>
-		</link>
-		<link>
 			<name>Startup/board.c</name>
 			<type>1</type>
 			<locationURI>SRC_BLE_CORE/target/board.c</locationURI>
@@ -274,12 +254,12 @@
 		<link>
 			<name>Startup/ccfg_app_ble.c</name>
 			<type>1</type>
-			<locationURI>TI_BLE_SDK_BASE/examples/cc2650lp/simple_peripheral/iar/config/ccfg_app_ble.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/startup/ccfg_app_ble.c</locationURI>
 		</link>
 		<link>
 			<name>Startup/main.c</name>
 			<type>1</type>
-			<locationURI>PARENT-5-PROJECT_IMPORT_LOC/src/examples/simple_peripheral_observer/cc26xx/app/main.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/startup/main.c</locationURI>
 		</link>
 		<link>
 			<name>TOOLS/app_ble.cfg</name>
@@ -289,7 +269,7 @@
 		<link>
 			<name>TOOLS/cc26xx_app.cmd</name>
 			<type>1</type>
-			<locationURI>SRC_EX/common/cc26xx/ccs/cc26xx_app.cmd</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/cc26xx_app.cmd</locationURI>
 		</link>
 		<link>
 			<name>TOOLS/ccs_compiler_defines.bcfg</name>
