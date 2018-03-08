@@ -20,6 +20,7 @@
 #define BEACONS_LIST_MAC_ADDR               4
 #define BEACONS_LIST_FLAG_OF_MAC            5
 
+#define BEACONS_SCAN_LENGTH                 2
 #define BEACONS_TOTAL_COUNT_LENGTH          2
 #define BEACONS_AGE_OF_RECORD_LENGTH        4
 #define BEACONS_MAC_ADDR_LENGTH             256

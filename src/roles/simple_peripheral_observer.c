@@ -133,7 +133,7 @@
 #define DEFAULT_DISCOVERY_MODE                DEVDISC_MODE_ALL
 
 // TRUE to use active scan
-#define DEFAULT_DISCOVERY_ACTIVE_SCAN         FALSE
+#define DEFAULT_DISCOVERY_ACTIVE_SCAN         TRUE
 
 // TRUE to use white list during discovery
 #define DEFAULT_DISCOVERY_WHITE_LIST          FALSE
@@ -327,9 +327,17 @@ void SimpleBLEPeripheral_startDiscovery(void)
 {
     BeaconsProfile_ResetCounters();
 
+    uint16 * scanDuration = (uint16 *) BeaconsProfile_GetParameter(BEACONS_DISCO_SCAN);
+
+    GAP_SetParamValue(TGAP_GEN_DISC_SCAN, *scanDuration);
+    GAP_SetParamValue(TGAP_LIM_DISC_SCAN, *scanDuration);
+
     bStatus_t status = GAPObserverRole_StartDiscovery(DEFAULT_DISCOVERY_MODE,
                                                       DEFAULT_DISCOVERY_ACTIVE_SCAN,
                                                       DEFAULT_DISCOVERY_WHITE_LIST);
+
+    Display_print1(dispHandle, 7, 0, "RspCount: %d", rspCount);
+
     if(status == SUCCESS)
     {
         Display_print0(dispHandle, 4, 0, "Scanning On");
@@ -669,7 +677,8 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
         //scanningStarted = FALSE;
 
         Display_print0(dispHandle, 4, 0, "Scanning Off");
-        BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint8), 0);
+        uint16 stopScan = 0;
+        BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint16), &stopScan);
 
         #ifdef CONSOLE_OUTPUT
             beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);

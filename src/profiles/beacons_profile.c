@@ -71,8 +71,9 @@ static Types_FreqHz freq;
 
 static const gattAttrType_t beaconsDiscoService = {ATT_UUID_SIZE, beaconsDiscoServUUID};
 static uint8 beaconsDiscoScanChar = GATT_PROP_READ | GATT_PROP_WRITE;
-static uint8 beaconsDiscoScanValue = 0;
-static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value > 1";
+static uint16 beaconsScanDuration = 0;
+static uint8 beaconsDiscoScanValue[BEACONS_SCAN_LENGTH] = {0, 0};
+static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value = scan duration in ms";
 
 static beaconRecord beacons[DEFAULT_MAX_SCAN_RES];
 static macAddr beaconsMacAddr[BEACONS_MAC_ADDR_LENGTH];
@@ -105,7 +106,7 @@ static uint8 beaconsListAgeOfRecordCharDesc[] = "Age of record in ms";
 
 static uint8 beaconsListFlagOfMacChar = GATT_PROP_READ;
 static uint8 beaconsListFlagOfMacValue = 0;
-static uint8 beaconsListFlagOfMacCharDesc[] = "Flag of more device were discovered";
+static uint8 beaconsListFlagOfMacCharDesc[] = "Flag of more devices were discovered";
 
 
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
@@ -153,7 +154,7 @@ static gattAttribute_t beaconsDiscoServiceAttrTbl[] =
           {ATT_UUID_SIZE, beaconsDiscoScanUUID},
           GATT_PERMIT_READ | GATT_PERMIT_WRITE,
           0,
-          &beaconsDiscoScanValue
+          beaconsDiscoScanValue
      },
      {
           {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -318,9 +319,9 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
     switch(param)
     {
         case BEACONS_DISCO_SCAN:
-            if(len == sizeof(uint8))
+            if(len == sizeof(uint16))
             {
-                beaconsDiscoScanValue = *((uint8 *) value);
+                beaconsScanDuration = *((uint16 *) value);
             }
             else
             {
@@ -390,7 +391,7 @@ void* BeaconsProfile_GetParameter(uint8 param)
     switch(param)
     {
         case BEACONS_DISCO_SCAN:
-            return &beaconsDiscoScanValue;
+            return &beaconsScanDuration;
         case BEACONS_LIST_GET_RECORD:
             return &beaconsListGetRecordValue;
         case BEACONS_LIST_TOTAL_COUNT:
@@ -469,6 +470,9 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
         switch(uuid)
         {
             case BEACONS_DISCO_SCAN_UUID:
+                *pLen = BEACONS_SCAN_LENGTH;
+                Tools_BytesToArray(&beaconsScanDuration, BEACONS_SCAN_LENGTH, pValue);
+                break;
             case BEACONS_LIST_FLAG_OF_MAC_UUID:
                 *pLen = 1;
                 pValue[0] = *pAttr->pValue;
@@ -540,7 +544,7 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
             case BEACONS_DISCO_SCAN_UUID:
                 if(offset == 0)
                 {
-                    if(len != 1)
+                    if(len != BEACONS_SCAN_LENGTH)
                     {
                         status = ATT_ERR_INVALID_VALUE_SIZE;
                     }
@@ -550,13 +554,17 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                     status = ATT_ERR_ATTR_NOT_LONG;
                 }
 
-                if(status == SUCCESS && pValue[0] > 0)
+                if(status == SUCCESS)
                 {
-                    uint8 *pCurValue = (uint8 *)pAttr->pValue;
-                    *pCurValue = pValue[0];
+                    uint16 scanDuration;
+                    Tools_ArrayToBytes(pValue, BEACONS_SCAN_LENGTH, &scanDuration);
 
-                    notifyApp = BEACONS_DISCO_SCAN;
+                    if(scanDuration > 0)
+                    {
+                        beaconsScanDuration = scanDuration;
 
+                        notifyApp = BEACONS_DISCO_SCAN;
+                    }
                 }
                 break;
             case BEACONS_LIST_GET_RECORD_UUID:
@@ -576,6 +584,7 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                 {
                     uint16 index;
                     Tools_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
+
                     if(index < beaconsTotalCount)
                     {
                         beaconsSelectedIndex = index;
