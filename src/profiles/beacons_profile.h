@@ -12,6 +12,7 @@
 #define BEACONS_LIST_RSSI_UUID              0xB400
 #define BEACONS_LIST_AGE_UUID               0xB500
 #define BEACONS_LIST_FLAG_OF_MAC_UUID       0xB600
+#define BEACONS_LIST_AGE_OF_SCAN_UUID       0xB700
 
 #define BEACONS_DISCO_SCAN                  0
 #define BEACONS_LIST_GET_RECORD             1
@@ -19,11 +20,13 @@
 #define BEACONS_LIST_ALL_RECORDS            3
 #define BEACONS_LIST_MAC_ADDR               4
 #define BEACONS_LIST_FLAG_OF_MAC            5
+#define BEACONS_LIST_AGE_OF_SCAN            6
 
 #define BEACONS_SCAN_LENGTH                 2
 #define BEACONS_TOTAL_COUNT_LENGTH          2
-#define BEACONS_AGE_OF_RECORD_LENGTH        4
+#define BEACONS_AGE_OF_RECORD_LENGTH        2
 #define BEACONS_MAC_ADDR_LENGTH             256
+#define BEACONS_AGE_OF_SCAN_LENGTH          2
 
 #define MAC_ADDR_NOT_FOUND                  -1
 
@@ -40,7 +43,7 @@ typedef struct
 {
     uint8 indexOfMacAddr;
     uint8 rssi;
-    uint32_t discoTime;
+    uint16 discoTime;
 
 } beaconRecord;
 

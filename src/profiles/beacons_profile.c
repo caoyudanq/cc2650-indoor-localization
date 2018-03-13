@@ -65,6 +65,11 @@ static const uint8_t beaconsListFlagOfMacUUID[ATT_UUID_SIZE] =
      TI_BASE_UUID_128(BEACONS_LIST_FLAG_OF_MAC_UUID)
 };
 
+static const uint8_t beaconsListAgeOfScanUUID[ATT_UUID_SIZE] =
+{
+     TI_BASE_UUID_128(BEACONS_LIST_AGE_OF_SCAN_UUID)
+};
+
 
 static beaconsProfileCBs_t *beaconsProfile_AppCBs = NULL;
 static Types_FreqHz freq;
@@ -72,7 +77,6 @@ static Types_FreqHz freq;
 static const gattAttrType_t beaconsDiscoService = {ATT_UUID_SIZE, beaconsDiscoServUUID};
 static uint8 beaconsDiscoScanChar = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint16 beaconsScanDuration = 0;
-static uint8 beaconsDiscoScanValue[BEACONS_SCAN_LENGTH] = {0, 0};
 static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value = scan duration in ms";
 
 static beaconRecord beacons[DEFAULT_MAX_SCAN_RES];
@@ -84,29 +88,27 @@ static uint16 beaconsSelectedIndex = 0;
 static const gattAttrType_t beaconsListService = {ATT_UUID_SIZE, beaconsListServUUID};
 
 static uint8 beaconsListGetRecordChar = GATT_PROP_WRITE;
-static uint8 beaconsListGetRecordValue[BEACONS_TOTAL_COUNT_LENGTH] = {0, 0};
 static uint8 beaconsListGetRecordCharDesc[] = "Index of record";
 
 static uint8 beaconsListTotalCountChar = GATT_PROP_READ;
-static uint8 beaconsListTotalCountValue[BEACONS_TOTAL_COUNT_LENGTH] = {0, 0};
 static uint8 beaconsListTotalCountCharDesc[] = "Total count of records";
 
 static uint8 beaconsListMacAddrChar = GATT_PROP_READ;
-static uint8 beaconsListMacAddrValue[B_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 static uint8 beaconsListMacAddrCharDesc[] = "MAC address";
 
 static uint8 beaconsListRssiChar = GATT_PROP_READ;
-static uint8  beaconsListRssiValue = 0;
 static uint8 beaconsListRssiCharDesc[] = "RSSI";
 
 static uint8 beaconsListAgeOfRecordChar = GATT_PROP_READ;
-//static uint32_t beaconsListAgeOfRecordValue = 0;
-static uint8 beaconsListAgeOfRecordValue[BEACONS_AGE_OF_RECORD_LENGTH] = {0, 0, 0, 0};
 static uint8 beaconsListAgeOfRecordCharDesc[] = "Age of record in ms";
 
 static uint8 beaconsListFlagOfMacChar = GATT_PROP_READ;
 static uint8 beaconsListFlagOfMacValue = 0;
 static uint8 beaconsListFlagOfMacCharDesc[] = "Flag of more devices were discovered";
+
+static uint8 beaconsListAgeOfScanChar = GATT_PROP_READ;
+static uint32_t beaconsListAgeOfScanValue = 0;
+static uint8 beaconsListAgeOfScanCharDesc[] = "Time from the start of scan";
 
 
 static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
@@ -154,7 +156,7 @@ static gattAttribute_t beaconsDiscoServiceAttrTbl[] =
           {ATT_UUID_SIZE, beaconsDiscoScanUUID},
           GATT_PERMIT_READ | GATT_PERMIT_WRITE,
           0,
-          beaconsDiscoScanValue
+          NULL
      },
      {
           {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -182,7 +184,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListGetRecordUUID},
            GATT_PERMIT_WRITE,
            0,
-           beaconsListGetRecordValue
+           NULL
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -200,7 +202,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListTotalCountUUID},
            GATT_PERMIT_READ,
            0,
-           beaconsListTotalCountValue
+           NULL
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -218,7 +220,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListMacAddrUUID},
            GATT_PERMIT_READ,
            0,
-           beaconsListMacAddrValue
+           NULL
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -236,7 +238,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListRssiUUID},
            GATT_PERMIT_READ,
            0,
-           &beaconsListRssiValue
+           NULL
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -254,7 +256,7 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            {ATT_UUID_SIZE, beaconsListAgeOfRecordUUID},
            GATT_PERMIT_READ,
            0,
-           beaconsListAgeOfRecordValue
+           NULL
       },
       {
            {ATT_BT_UUID_SIZE, charUserDescUUID},
@@ -279,6 +281,24 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
            GATT_PERMIT_READ,
            0,
            beaconsListFlagOfMacCharDesc
+      },
+      {
+           {ATT_BT_UUID_SIZE, characterUUID},
+           GATT_PERMIT_READ,
+           0,
+           &beaconsListAgeOfScanChar
+      },
+      {
+           {ATT_UUID_SIZE, beaconsListAgeOfScanUUID},
+           GATT_PERMIT_READ,
+           0,
+           NULL
+      },
+      {
+           {ATT_BT_UUID_SIZE, charUserDescUUID},
+           GATT_PERMIT_READ,
+           0,
+           beaconsListAgeOfScanCharDesc
       }
 };
 
@@ -378,6 +398,12 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
                 status = bleInvalidRange;
             }
             break;
+        case BEACONS_LIST_AGE_OF_SCAN:
+            if(len == sizeof(uint32_t))
+            {
+                beaconsListAgeOfScanValue = *((uint32_t *) value);
+            }
+            break;
         default:
             status = INVALIDPARAMETER;
             break;
@@ -393,7 +419,7 @@ void* BeaconsProfile_GetParameter(uint8 param)
         case BEACONS_DISCO_SCAN:
             return &beaconsScanDuration;
         case BEACONS_LIST_GET_RECORD:
-            return &beaconsListGetRecordValue;
+            return &beaconsSelectedIndex;
         case BEACONS_LIST_TOTAL_COUNT:
             return &beaconsTotalCount;
         case BEACONS_LIST_ALL_RECORDS:
@@ -402,6 +428,8 @@ void* BeaconsProfile_GetParameter(uint8 param)
             return beaconsMacAddr;
         case BEACONS_LIST_FLAG_OF_MAC:
             return &beaconsListFlagOfMacValue;
+        case BEACONS_LIST_AGE_OF_SCAN:
+            return &beaconsListAgeOfScanValue;
         default:
             return NULL;
     }
@@ -432,7 +460,10 @@ void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32
     if(beaconsTotalCount == DEFAULT_MAX_SCAN_RES)
         return;
 
-    beacons[beaconsTotalCount].discoTime = timestamp;
+    uint32_t delta = (timestamp - beaconsListAgeOfScanValue) * 1000; //miliseconds
+    uint32_t time = delta / freq.lo;
+
+    beacons[beaconsTotalCount].discoTime = time;
     beacons[beaconsTotalCount].rssi = -1 * rssi;
 
     if(indexOfMacAddr != MAC_ADDR_NOT_FOUND)
@@ -483,35 +514,24 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 break;
             case BEACONS_LIST_MAC_ADDR_UUID:
                 *pLen = B_ADDR_LEN;
-                if(beaconsTotalCount > 0)
-                {
-                    uint8 index = beacons[beaconsSelectedIndex].indexOfMacAddr;
-                    memcpy(pValue, beaconsMacAddr[index].macAddr, B_ADDR_LEN);
-                }
-                else
-                    memcpy(pValue, pAttr->pValue, B_ADDR_LEN);
+                uint8 index = beacons[beaconsSelectedIndex].indexOfMacAddr;
+                memcpy(pValue, beaconsMacAddr[index].macAddr, B_ADDR_LEN);
                 break;
             case BEACONS_LIST_RSSI_UUID:
                 *pLen = 1;
-                if(beaconsTotalCount > 0)
-                    pValue[0] = beacons[beaconsSelectedIndex].rssi;
-                else
-                    pValue[0] = *pAttr->pValue;
+                pValue[0] = beacons[beaconsSelectedIndex].rssi;
                 break;
             case BEACONS_LIST_AGE_UUID:
                 *pLen = BEACONS_AGE_OF_RECORD_LENGTH;
-                if(beaconsTotalCount > 0)
-                {
-                    uint32_t actualTime = Timestamp_get32();
-                    uint32_t delta = (actualTime - beacons[beaconsSelectedIndex].discoTime) * 10; //desetiny sekund
-                    uint32_t time = delta / freq.lo;
+                Tools_BytesToArray(&beacons[beaconsSelectedIndex].discoTime, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
+                break;
+            case BEACONS_LIST_AGE_OF_SCAN_UUID:
+                *pLen = BEACONS_AGE_OF_SCAN_LENGTH;
+                uint32_t actualTime = Timestamp_get32();
+                uint32_t delta = (actualTime - beaconsListAgeOfScanValue) * 1000; //miliseconds
+                uint32_t time = delta / freq.lo;
 
-                    Tools_BytesToArray(&time, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
-                }
-                else
-                {
-                    memcpy(pValue, pAttr->pValue, BEACONS_AGE_OF_RECORD_LENGTH);
-                }
+                Tools_BytesToArray(&time, BEACONS_AGE_OF_SCAN_LENGTH, pValue);
                 break;
             default:
                 *pLen = 0;

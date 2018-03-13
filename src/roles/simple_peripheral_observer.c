@@ -336,10 +336,12 @@ void SimpleBLEPeripheral_startDiscovery(void)
                                                       DEFAULT_DISCOVERY_ACTIVE_SCAN,
                                                       DEFAULT_DISCOVERY_WHITE_LIST);
 
-    Display_print1(dispHandle, 7, 0, "RspCount: %d", rspCount);
-
     if(status == SUCCESS)
     {
+        uint32_t startTime = Timestamp_get32();
+        BeaconsProfile_SetParameter(BEACONS_LIST_AGE_OF_SCAN, sizeof(startTime), &startTime);
+
+        Display_print1(dispHandle, 7, 0, "RspCount: %d", rspCount);
         Display_print0(dispHandle, 4, 0, "Scanning On");
     }
     else
