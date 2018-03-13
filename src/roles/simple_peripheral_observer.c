@@ -72,7 +72,6 @@
 #endif //USE_RCOSC
 
 #include <ti/mw/display/Display.h>
-#include "board_key.h"
 
 #include "board.h"
 
@@ -155,8 +154,7 @@
 #define SBP_CONN_EVT_END_EVT                  0x0008
 
 #ifdef PLUS_OBSERVER
-#define SBP_KEY_CHANGE_EVT                    0x0010
-#define SBP_OBSERVER_STATE_CHANGE_EVT         0x0020
+#define SBP_OBSERVER_STATE_CHANGE_EVT         0x0010
 #endif
 
 /*********************************************************************
@@ -198,8 +196,6 @@ static Queue_Handle appMsgQueue;
 
 // events flag for internal application events.
 static uint16_t events;
-
-static Clock_Struct periodicClock;
 
 // Task configuration
 Task_Struct sbpTask;
@@ -259,13 +255,8 @@ static uint8_t attDeviceName[] = "CC2650 Sensor Tag";
 static gattMsgEvent_t *pAttRsp = NULL;
 static uint8_t rspTxRetry = 0;
 
-#ifdef PLUS_OBSERVER
-static bool scanningStarted = FALSE;
-#endif
-
 static uint16 rspCount = 0;
 
-const char *AdvTypeStrings[] = {"Connectable undirected","Connectable directed", "Scannable undirected", "Non-connectable undirected", "Scan response"};
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -281,7 +272,6 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID);
 static void SimpleBLEPeripheral_performPeriodicTask(void);
 static void SimpleBLEPeripheral_clockHandler(UArg arg);
 #ifdef PLUS_OBSERVER
-void SimpleBLEPeripheral_keyChangeHandler(uint8 keysPressed);
 static void SimpleBLEPeripheral_ObserverStateChangeCB(gapPeripheralObserverRoleEvent_t *pEvent);
 #endif
 
@@ -403,10 +393,6 @@ static void SimpleBLEPeripheral_init(void)
   // Create one-shot clocks for internal periodic events.
   Util_constructClock(&periodicClock, SimpleBLEPeripheral_clockHandler,
                       SBP_PERIODIC_EVT_PERIOD, 0, false, SBP_PERIODIC_EVT);
-
-#ifdef PLUS_OBSERVER
-  Board_initKeys(SimpleBLEPeripheral_keyChangeHandler);
-#endif
 
   dispHandle = Display_open(Display_Type_LCD, NULL);
 
@@ -675,9 +661,6 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
 
     case GAP_DEVICE_DISCOVERY_EVENT:
       {
-        // discovery complete
-        //scanningStarted = FALSE;
-
         Display_print0(dispHandle, 4, 0, "Scanning Off");
         uint16 stopScan = 0;
         BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint16), &stopScan);
@@ -879,74 +862,6 @@ static void SimpleBLEPeripheral_freeAttRsp(uint8_t status)
   }
 }
 
-#ifdef PLUS_OBSERVER
-/*********************************************************************
- * @fn      SimpleBLECentral_handleKeys
- *
- * @brief   Handles all key events for this device.
- *
- * @param   shift - true if in shift/alt.
- * @param   keys - bit field for key events. Valid entries:
- *                 HAL_KEY_SW_2
- *                 HAL_KEY_SW_1
- *
- * @return  none
- */
-static void SimpleBLEPeripheral_handleKeys(uint8_t shift, uint8_t keys)
-{
-  (void)shift;  // Intentionally unreferenced parameter
-
-  if (keys & KEY_RIGHT)
-  {
-    uint8 status;
-
-    if(scanningStarted == TRUE)
-    {
-      status = GAPObserverRole_CancelDiscovery();
-
-      if(status == SUCCESS)
-      {
-        scanningStarted = FALSE;
-        Display_print0(dispHandle, 4, 0, "Scanning Off");
-      }
-      else
-      {
-        Display_print0(dispHandle, 4, 0, "Scanning Off Fail");
-      }
-    }
-
-    return;
-  }
-
-  if (keys & KEY_LEFT)
-  {
-    uint8 status;
-
-    //Start scanning if not already scanning
-    if((scanningStarted == FALSE))
-    {
-      status = GAPObserverRole_StartDiscovery(DEFAULT_DISCOVERY_MODE,
-                                    DEFAULT_DISCOVERY_ACTIVE_SCAN,
-                                    DEFAULT_DISCOVERY_WHITE_LIST);
-
-      if(status == SUCCESS)
-      {
-        scanningStarted = TRUE;
-        Display_print0(dispHandle, 4, 0, "Scanning On");
-      }
-      else
-      {
-        Display_print1(dispHandle, 4, 0, "Scanning failed: %d", status);
-      }
-
-    }
-
-    return;
-  }
-
-}
-#endif //#ifdef PLUS_OBSERVER
-
 /*********************************************************************
  * @fn      SimpleBLEPeripheral_processAppMsg
  *
@@ -970,10 +885,6 @@ static void SimpleBLEPeripheral_processAppMsg(sbpEvt_t *pMsg)
       break;
 
 #ifdef PLUS_OBSERVER
-    case SBP_KEY_CHANGE_EVT:
-      SimpleBLEPeripheral_handleKeys(0, pMsg->hdr.state);
-      break;
-
     case SBP_OBSERVER_STATE_CHANGE_EVT:
       SimpleBLEPeripheral_processStackMsg((ICall_Hdr *)pMsg->pData);
 
@@ -988,20 +899,6 @@ static void SimpleBLEPeripheral_processAppMsg(sbpEvt_t *pMsg)
 
 
 #ifdef PLUS_OBSERVER
-/*********************************************************************
- * @fn      SimpleBLEPeripheral_keyChangeHandler
- *
- * @brief   Key event handler function
- *
- * @param   a0 - ignored
- *
- * @return  none
- */
-void SimpleBLEPeripheral_keyChangeHandler(uint8 keys)
-{
-  SimpleBLEPeripheral_enqueueMsg(SBP_KEY_CHANGE_EVT, keys, NULL);
-}
-
 /*********************************************************************
  * @fn      SimpleBLEPeripheral_ObserverStateChangeCB
  *

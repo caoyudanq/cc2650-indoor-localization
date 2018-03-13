@@ -67,16 +67,6 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>Application/board_key.c</name>
-			<type>1</type>
-			<locationURI>SRC_BLE_CORE/common/cc26xx/board_key.c</locationURI>
-		</link>
-		<link>
-			<name>Application/board_key.h</name>
-			<type>1</type>
-			<locationURI>SRC_BLE_CORE/common/cc26xx/board_key.h</locationURI>
-		</link>
-		<link>
 			<name>Application/simple_peripheral_observer.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/roles/simple_peripheral_observer.c</locationURI>
