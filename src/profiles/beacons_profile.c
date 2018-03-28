@@ -13,7 +13,6 @@
 #include "gatt_uuid.h"
 #include "gatt_profile_uuid.h"
 #include "gattservapp.h"
-#include "tools.h"
 
 #include "beacons_profile.h"
 #include "simple_peripheral_observer.h"
@@ -502,7 +501,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
         {
             case BEACONS_DISCO_SCAN_UUID:
                 *pLen = BEACONS_SCAN_LENGTH;
-                Tools_BytesToArray(&beaconsScanDuration, BEACONS_SCAN_LENGTH, pValue);
+                memcpy(pValue, &beaconsScanDuration, BEACONS_SCAN_LENGTH);
                 break;
             case BEACONS_LIST_FLAG_OF_MAC_UUID:
                 *pLen = 1;
@@ -510,7 +509,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 break;
             case BEACONS_LIST_TOTAL_COUNT_UUID:
                 *pLen = BEACONS_TOTAL_COUNT_LENGTH;
-                Tools_BytesToArray(&beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH, pValue);
+                memcpy(pValue, &beaconsTotalCount, BEACONS_TOTAL_COUNT_LENGTH);
                 break;
             case BEACONS_LIST_MAC_ADDR_UUID:
                 *pLen = B_ADDR_LEN;
@@ -523,7 +522,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 break;
             case BEACONS_LIST_AGE_UUID:
                 *pLen = BEACONS_AGE_OF_RECORD_LENGTH;
-                Tools_BytesToArray(&beacons[beaconsSelectedIndex].discoTime, BEACONS_AGE_OF_RECORD_LENGTH, pValue);
+                memcpy(pValue, &beacons[beaconsSelectedIndex].discoTime, BEACONS_AGE_OF_RECORD_LENGTH);
                 break;
             case BEACONS_LIST_AGE_OF_SCAN_UUID:
                 *pLen = BEACONS_AGE_OF_SCAN_LENGTH;
@@ -531,7 +530,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
                 uint32_t delta = (actualTime - beaconsListAgeOfScanValue) * 1000; //miliseconds
                 uint32_t time = delta / freq.lo;
 
-                Tools_BytesToArray(&time, BEACONS_AGE_OF_SCAN_LENGTH, pValue);
+                memcpy(pValue, &time, BEACONS_AGE_OF_SCAN_LENGTH);
                 break;
             default:
                 *pLen = 0;
@@ -577,7 +576,7 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                 if(status == SUCCESS)
                 {
                     uint16 scanDuration;
-                    Tools_ArrayToBytes(pValue, BEACONS_SCAN_LENGTH, &scanDuration);
+                    memcpy(&scanDuration, pValue, BEACONS_SCAN_LENGTH);
 
                     if(scanDuration > 0)
                     {
@@ -603,7 +602,7 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
                 if(status == SUCCESS)
                 {
                     uint16 index;
-                    Tools_ArrayToBytes(pValue, BEACONS_TOTAL_COUNT_LENGTH, &index);
+                    memcpy(&index, pValue, BEACONS_TOTAL_COUNT_LENGTH);
 
                     if(index < beaconsTotalCount)
                     {

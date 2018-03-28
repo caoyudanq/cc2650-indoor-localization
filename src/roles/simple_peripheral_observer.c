@@ -65,7 +65,7 @@
 #include "icall_apimsg.h"
 
 #include "util.h"
-#include "tools.h"
+#include "hal_defs.h"
 
 #ifdef USE_RCOSC
 #include "rcosc_calibration.h"
@@ -333,6 +333,7 @@ void SimpleBLEPeripheral_startDiscovery(void)
 
         Display_print1(dispHandle, 7, 0, "RspCount: %d", rspCount);
         Display_print0(dispHandle, 4, 0, "Scanning On");
+        Display_print1(dispHandle, 11, 0, "Duration: %d", *scanDuration);
     }
     else
     {
@@ -462,7 +463,7 @@ static void SimpleBLEPeripheral_init(void)
   }
 
   // Set the GAP Characteristics
-  GGS_SetParameter(GGS_DEVICE_NAME_ATT, LENGTH_OF_ARRAY(attDeviceName), attDeviceName);
+  GGS_SetParameter(GGS_DEVICE_NAME_ATT, ARRAY_SIZE(attDeviceName), attDeviceName);
 
   // Set advertising interval
   {
