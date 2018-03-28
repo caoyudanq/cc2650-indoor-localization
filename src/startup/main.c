@@ -140,17 +140,6 @@ int main()
 
   PIN_init(BoardGpioInitTable);
 
-#ifdef CC1350_LAUNCHXL
-  // Enable 2.4GHz Radio
-  radCtrlHandle = PIN_open(&radCtrlState, radCtrlCfg);
-  
-#ifdef POWER_SAVING
-  Power_registerNotify(&rFSwitchPowerNotifyObj, 
-                       PowerCC26XX_ENTERING_STANDBY | PowerCC26XX_AWAKE_STANDBY,
-                       (Power_NotifyFxn) rFSwitchNotifyCb, NULL);
-#endif //POWER_SAVING
-#endif //CC1350_LAUNCHXL
-
 #ifndef POWER_SAVING
   /* Set constraints for Standby, powerdown and idle mode */
   Power_setConstraint(PowerCC26XX_SB_DISALLOW);
