@@ -56,7 +56,7 @@
 #include "linkdb.h"
 #include "gapgattserver.h"
 #include "gattservapp.h"
-#include "beacons_profile.h"
+#include "beacons_scanner_profile.h"
 
 #include "peripheral_observer.h"
 #include "gapbondmgr.h"
@@ -304,7 +304,7 @@ static gapBondCBs_t simpleBLEPeripheral_BondMgrCBs =
   NULL  // Pairing / Bonding state Callback (not used by application)
 };
 
-static beaconsProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
+static beaconsScannerProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
 {
      SimpleBLEPeripheral_charValueChangeCB
 };
@@ -315,9 +315,9 @@ static beaconsProfileCBs_t SimpleBLEPeripheral_beaconsProfileCBs =
 
 void SimpleBLEPeripheral_startDiscovery(void)
 {
-    BeaconsProfile_ResetCounters();
+    BeaconsScannerProfile_ResetCounters();
 
-    uint16 * scanDuration = (uint16 *) BeaconsProfile_GetParameter(BEACONS_DISCO_SCAN);
+    uint16 * scanDuration = (uint16 *) BeaconsScannerProfile_GetParameter(BEACONS_DISCO_SCAN);
 
     GAP_SetParamValue(TGAP_GEN_DISC_SCAN, *scanDuration);
     GAP_SetParamValue(TGAP_LIM_DISC_SCAN, *scanDuration);
@@ -329,15 +329,15 @@ void SimpleBLEPeripheral_startDiscovery(void)
     if(status == SUCCESS)
     {
         uint32_t startTime = Timestamp_get32();
-        BeaconsProfile_SetParameter(BEACONS_LIST_AGE_OF_SCAN, sizeof(startTime), &startTime);
+        BeaconsScannerProfile_SetParameter(BEACONS_LIST_AGE_OF_SCAN, sizeof(startTime), &startTime);
 
-        Display_print1(dispHandle, 7, 0, "RspCount: %d", rspCount);
-        Display_print0(dispHandle, 4, 0, "Scanning On");
-        Display_print1(dispHandle, 11, 0, "Duration: %d", *scanDuration);
+        Display_print1(dispHandle, 6, 0, "RspCount: %d", rspCount);
+        Display_print0(dispHandle, 5, 0, "Scanning On");
+        Display_print1(dispHandle, 7, 0, "Duration: %d", *scanDuration);
     }
     else
     {
-        Display_print1(dispHandle, 4, 0, "Scanning Fail:%d", status);
+        Display_print1(dispHandle, 5, 0, "Scanning Fail:%d", status);
     }
 }
 
@@ -495,9 +495,9 @@ static void SimpleBLEPeripheral_init(void)
    // Initialize GATT attributes
   GGS_AddService(GATT_ALL_SERVICES);           // GAP
   GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT attributes
-  BeaconsProfileAddService();
+  BeaconsScannerProfile_AddService();
 
-  BeaconsProfile_RegisterAppCBs(&SimpleBLEPeripheral_beaconsProfileCBs);
+  BeaconsScannerProfile_RegisterAppCBs(&SimpleBLEPeripheral_beaconsProfileCBs);
 
   // Start the Device
   VOID GAPRole_StartDevice(&SimpleBLEPeripheral_gapRoleCBs);
@@ -652,8 +652,8 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
 
     case GAP_DEVICE_INFO_EVENT:
       {
-        Display_print1(dispHandle, 7, 0, "RspCount: %d", ++rspCount);
-        BeaconsProfile_AddBeaconRecord(pEvent->deviceInfo.addr, pEvent->deviceInfo.rssi, Timestamp_get32());
+        Display_print1(dispHandle, 6, 0, "RspCount: %d", ++rspCount);
+        BeaconsScannerProfile_AddBeaconRecord(pEvent->deviceInfo.addr, pEvent->deviceInfo.rssi, Timestamp_get32());
         
         ICall_free(pEvent->deviceInfo.pEvtData);
         ICall_free(pEvent);
@@ -662,14 +662,14 @@ static void SimpleBLEPeripheralObserver_processRoleEvent(gapPeripheralObserverRo
 
     case GAP_DEVICE_DISCOVERY_EVENT:
       {
-        Display_print0(dispHandle, 4, 0, "Scanning Off");
+        Display_print0(dispHandle, 5, 0, "Scanning Off");
         uint16 stopScan = 0;
-        BeaconsProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint16), &stopScan);
+        BeaconsScannerProfile_SetParameter(BEACONS_DISCO_SCAN, sizeof(uint16), &stopScan);
 
         #ifdef CONSOLE_OUTPUT
-            beaconRecord * devices = BeaconsProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
-            macAddr * mac = BeaconsProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
-            uint16 * totalCount = (uint16 *) BeaconsProfile_GetParameter(BEACONS_LIST_TOTAL_COUNT);
+            beaconRecord * devices = BeaconsScannerProfile_GetParameter(BEACONS_LIST_ALL_RECORDS);
+            macAddr * mac = BeaconsScannerProfile_GetParameter(BEACONS_LIST_MAC_ADDR);
+            uint16 * totalCount = (uint16 *) BeaconsScannerProfile_GetParameter(BEACONS_LIST_TOTAL_COUNT);
 
             for(uint8 i = 0; i < *totalCount; i++) {
                 uint8 index = devices[i].indexOfMacAddr;
@@ -774,12 +774,12 @@ static uint8_t SimpleBLEPeripheral_processGATTMsg(gattMsgEvent_t *pMsg)
     // The app is informed in case it wants to drop the connection.
 
     // Display the opcode of the message that caused the violation.
-    Display_print1(dispHandle, 5, 0, "FC Violated: %d", pMsg->msg.flowCtrlEvt.opcode);
+    Display_print1(dispHandle, 4, 0, "FC Violated: %d", pMsg->msg.flowCtrlEvt.opcode);
   }
   else if (pMsg->method == ATT_MTU_UPDATED_EVENT)
   {
     // MTU size updated
-    Display_print1(dispHandle, 5, 0, "MTU Size: $d", pMsg->msg.mtuEvt.MTU);
+    Display_print1(dispHandle, 4, 0, "MTU Size: $d", pMsg->msg.mtuEvt.MTU);
   }
 
   // Free message payload. Needed only for ATT Protocol messages
@@ -822,7 +822,7 @@ static void SimpleBLEPeripheral_sendAttRsp(void)
     else
     {
       // Continue retrying
-      Display_print1(dispHandle, 5, 0, "Rsp send retry: %d", rspTxRetry);
+      Display_print1(dispHandle, 4, 0, "Rsp send retry: %d", rspTxRetry);
     }
   }
 }
@@ -844,14 +844,14 @@ static void SimpleBLEPeripheral_freeAttRsp(uint8_t status)
     // See if the response was sent out successfully
     if (status == SUCCESS)
     {
-      Display_print1(dispHandle, 5, 0, "Rsp sent retry: %d", rspTxRetry);
+      Display_print1(dispHandle, 4, 0, "Rsp sent retry: %d", rspTxRetry);
     }
     else
     {
       // Free response payload
       GATT_bm_free(&pAttRsp->msg, pAttRsp->method);
 
-      Display_print1(dispHandle, 5, 0, "Rsp retry failed: %d", rspTxRetry);
+      Display_print1(dispHandle, 4, 0, "Rsp retry failed: %d", rspTxRetry);
     }
 
     // Free response message
@@ -1045,7 +1045,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
       Display_print0(dispHandle, 2, 0, "Disconnected");
 
       // Clear remaining lines
-      Display_clearLines(dispHandle, 3, 5);
+      Display_clearLines(dispHandle, 3, 4);
       break;
 
     case GAPROLE_WAITING_AFTER_TIMEOUT:
@@ -1054,7 +1054,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
       Display_print0(dispHandle, 2, 0, "Timed Out");
 
       // Clear remaining lines
-      Display_clearLines(dispHandle, 3, 5);
+      Display_clearLines(dispHandle, 3, 4);
       break;
 
     case GAPROLE_ERROR:

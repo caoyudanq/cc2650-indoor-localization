@@ -192,14 +192,14 @@
 			<locationURI>SRC_COMMON/osal/src/inc/osal_snv.h</locationURI>
 		</link>
 		<link>
-			<name>Profiles/beacons_profile.c</name>
+			<name>Profiles/beacons_scanner_profile.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/profiles/beacons_profile.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/profiles/beacons_scanner_profile.c</locationURI>
 		</link>
 		<link>
-			<name>Profiles/beacons_profile.h</name>
+			<name>Profiles/beacons_scanner_profile.h</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/profiles/beacons_profile.h</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/profiles/beacons_scanner_profile.h</locationURI>
 		</link>
 		<link>
 			<name>Profiles/gatt_profile_uuid.h</name>

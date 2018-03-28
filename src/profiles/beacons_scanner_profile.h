@@ -31,13 +31,13 @@
 #define MAC_ADDR_NOT_FOUND                  -1
 
 
-typedef void (*beaconsProfileChange_t)(uint8 paramID);
+typedef void (*beaconsScannerProfileChange_t)(uint8 paramID);
 
 typedef struct
 {
-    beaconsProfileChange_t      pfnBeaconsProfileChange;
+    beaconsScannerProfileChange_t      pfnBeaconsScannerProfileChange;
 
-} beaconsProfileCBs_t;
+} beaconsScannerProfileCBs_t;
 
 typedef struct
 {
@@ -54,9 +54,9 @@ typedef struct
 } macAddr;
 
 
-extern bStatus_t BeaconsProfileAddService(void);
-extern bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value);
-extern void* BeaconsProfile_GetParameter(uint8 param);
-extern bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCalbacks);
-extern void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp);
-extern void BeaconsProfile_ResetCounters(void);
+extern bStatus_t BeaconsScannerProfile_AddService(void);
+extern bStatus_t BeaconsScannerProfile_SetParameter(uint8 param, uint16 len, void *value);
+extern void* BeaconsScannerProfile_GetParameter(uint8 param);
+extern bStatus_t BeaconsScannerProfile_RegisterAppCBs(beaconsScannerProfileCBs_t *appCalbacks);
+extern void BeaconsScannerProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp);
+extern void BeaconsScannerProfile_ResetCounters(void);

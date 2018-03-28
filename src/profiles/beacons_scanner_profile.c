@@ -14,7 +14,7 @@
 #include "gatt_profile_uuid.h"
 #include "gattservapp.h"
 
-#include "beacons_profile.h"
+#include "beacons_scanner_profile.h"
 #include "simple_peripheral_observer.h"
 
 // BEACONS DISCOVERY SERVICE UUIDs
@@ -70,7 +70,7 @@ static const uint8_t beaconsListAgeOfScanUUID[ATT_UUID_SIZE] =
 };
 
 
-static beaconsProfileCBs_t *beaconsProfile_AppCBs = NULL;
+static beaconsScannerProfileCBs_t *beaconsScannerProfile_AppCBs = NULL;
 static Types_FreqHz freq;
 
 static const gattAttrType_t beaconsDiscoService = {ATT_UUID_SIZE, beaconsDiscoServUUID};
@@ -110,11 +110,11 @@ static uint32_t beaconsListAgeOfScanValue = 0;
 static uint8 beaconsListAgeOfScanCharDesc[] = "Time from the start of scan";
 
 
-static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
+static bStatus_t beaconsScannerProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
                                           uint8_t *pValue, uint16_t *pLen, uint16_t offset,
                                           uint16_t maxLen, uint8_t method);
 
-static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
+static bStatus_t beaconsScannerProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
                                            uint8_t *pValue, uint16_t len, uint16_t offset,
                                            uint8_t method);
 
@@ -130,10 +130,10 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
 // pfnAuthorizeAttrCB to check a client's authorization prior to calling
 // pfnReadAttrCB or pfnWriteAttrCB, so no checks for authorization need to be
 // made within these functions.
-const gattServiceCBs_t beaconsProfileCBs =
+const gattServiceCBs_t beaconsScannerProfileCBs =
 {
-  beaconsProfileReadAttrCB,  // Read callback function pointer.
-  beaconsProfileWriteAttrCB, // Write callback function pointer.
+  beaconsScannerProfileReadAttrCB,  // Read callback function pointer.
+  beaconsScannerProfileWriteAttrCB, // Write callback function pointer.
   NULL            // Authorization callback function pointer.
 };
 
@@ -301,15 +301,15 @@ static gattAttribute_t beaconsListServiceAttTbl[] =
       }
 };
 
-bStatus_t BeaconsProfileAddService(void)
+bStatus_t BeaconsScannerProfile_AddService(void)
 {
     Timestamp_getFreq(&freq);
 
     bStatus_t scanService = GATTServApp_RegisterService(beaconsDiscoServiceAttrTbl, GATT_NUM_ATTRS(beaconsDiscoServiceAttrTbl),
-                                                        GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsProfileCBs);
+                                                        GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsScannerProfileCBs);
 
     bStatus_t listService = GATTServApp_RegisterService(beaconsListServiceAttTbl, GATT_NUM_ATTRS(beaconsListServiceAttTbl),
-                                                        GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsProfileCBs);
+                                                        GATT_MAX_ENCRYPT_KEY_SIZE, &beaconsScannerProfileCBs);
 
     if(scanService == SUCCESS && listService == SUCCESS)
         return SUCCESS;
@@ -317,11 +317,11 @@ bStatus_t BeaconsProfileAddService(void)
         return FAILURE;
 }
 
-bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCallbacks)
+bStatus_t BeaconsScannerProfile_RegisterAppCBs(beaconsScannerProfileCBs_t *appCallbacks)
 {
     if(appCallbacks)
     {
-        beaconsProfile_AppCBs = appCallbacks;
+        beaconsScannerProfile_AppCBs = appCallbacks;
 
         return SUCCESS;
     }
@@ -331,7 +331,7 @@ bStatus_t BeaconsProfile_RegisterAppCBs(beaconsProfileCBs_t *appCallbacks)
     }
 }
 
-bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
+bStatus_t BeaconsScannerProfile_SetParameter(uint8 param, uint16 len, void *value)
 {
     bStatus_t status = SUCCESS;
 
@@ -411,7 +411,7 @@ bStatus_t BeaconsProfile_SetParameter(uint8 param, uint16 len, void *value)
     return status;
 }
 
-void* BeaconsProfile_GetParameter(uint8 param)
+void* BeaconsScannerProfile_GetParameter(uint8 param)
 {
     switch(param)
     {
@@ -434,7 +434,7 @@ void* BeaconsProfile_GetParameter(uint8 param)
     }
 }
 
-static int16 BeaconsProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
+static int16 BeaconsScannerProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
 {
     for(uint8 index = 0; index < beaconsMacAddrCount; index++)
     {
@@ -446,9 +446,9 @@ static int16 BeaconsProfile_FindMacAddr(uint8 macAddr[B_ADDR_LEN])
     return MAC_ADDR_NOT_FOUND;
 }
 
-void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp)
+void BeaconsScannerProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32_t timestamp)
 {
-    int16 indexOfMacAddr = BeaconsProfile_FindMacAddr(macAddr);
+    int16 indexOfMacAddr = BeaconsScannerProfile_FindMacAddr(macAddr);
 
     if(beaconsMacAddrCount == BEACONS_MAC_ADDR_LENGTH && indexOfMacAddr == MAC_ADDR_NOT_FOUND)
     {
@@ -476,7 +476,7 @@ void BeaconsProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi, uint32
     }
 }
 
-void BeaconsProfile_ResetCounters(void)
+void BeaconsScannerProfile_ResetCounters(void)
 {
     beaconsMacAddrCount = 0;
     beaconsTotalCount = 0;
@@ -484,7 +484,7 @@ void BeaconsProfile_ResetCounters(void)
     beaconsSelectedIndex = 0;
 }
 
-static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
+static bStatus_t beaconsScannerProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
                                           uint8_t *pValue, uint16_t *pLen, uint16_t offset,
                                           uint16_t maxLen, uint8_t method)
 {
@@ -547,7 +547,7 @@ static bStatus_t beaconsProfileReadAttrCB(uint16_t connHandle, gattAttribute_t *
     return status;
 }
 
-static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
+static bStatus_t beaconsScannerProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t *pAttr,
                                            uint8_t *pValue, uint16_t len, uint16_t offset,
                                            uint8_t method)
 {
@@ -620,9 +620,9 @@ static bStatus_t beaconsProfileWriteAttrCB(uint16_t connHandle, gattAttribute_t 
         status = ATT_ERR_INVALID_HANDLE;
     }
 
-    if(notifyApp != 0xFF && beaconsProfile_AppCBs && beaconsProfile_AppCBs->pfnBeaconsProfileChange)
+    if(notifyApp != 0xFF && beaconsScannerProfile_AppCBs && beaconsScannerProfile_AppCBs->pfnBeaconsScannerProfileChange)
     {
-        beaconsProfile_AppCBs->pfnBeaconsProfileChange(notifyApp);
+        beaconsScannerProfile_AppCBs->pfnBeaconsScannerProfileChange(notifyApp);
     }
 
     return status;
