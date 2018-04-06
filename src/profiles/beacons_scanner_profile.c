@@ -78,7 +78,7 @@ static uint8 beaconsDiscoScanChar = GATT_PROP_READ | GATT_PROP_WRITE;
 static uint16 beaconsScanDuration = 0;
 static uint8 beaconsDiscoScanCharDesc[] = "Start scan - value = scan duration in ms";
 
-static beaconRecord beacons[DEFAULT_MAX_SCAN_RES];
+static beaconRecord beacons[BEACONS_RECORDS_LENGTH];
 static macAddr beaconsMacAddr[BEACONS_MAC_ADDR_LENGTH];
 static uint8 beaconsMacAddrCount = 0;
 static uint16 beaconsTotalCount = 0;
@@ -368,9 +368,9 @@ bStatus_t BeaconsScannerProfile_SetParameter(uint8 param, uint16 len, void *valu
             }
             break;
         case BEACONS_LIST_ALL_RECORDS:
-            if(len == (sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES))
+            if(len == (sizeof(beaconRecord) * BEACONS_RECORDS_LENGTH))
             {
-                memcpy(beacons, value, sizeof(beaconRecord) * DEFAULT_MAX_SCAN_RES);
+                memcpy(beacons, value, sizeof(beaconRecord) * BEACONS_RECORDS_LENGTH);
             }
             else
             {
@@ -456,7 +456,7 @@ void BeaconsScannerProfile_AddBeaconRecord(uint8 macAddr[B_ADDR_LEN], int8 rssi,
         return;
     }
 
-    if(beaconsTotalCount == DEFAULT_MAX_SCAN_RES)
+    if(beaconsTotalCount == BEACONS_RECORDS_LENGTH)
         return;
 
     uint32_t delta = (timestamp - beaconsListAgeOfScanValue) * 1000; //miliseconds

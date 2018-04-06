@@ -62,8 +62,6 @@ extern "C"
  * CONSTANTS
  */
 
-#define DEFAULT_MAX_SCAN_RES                  1680
-
 /*********************************************************************
  * MACROS
  */

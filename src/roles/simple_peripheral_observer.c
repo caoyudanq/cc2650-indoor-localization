@@ -117,7 +117,7 @@
 
 #ifdef PLUS_OBSERVER
 // Maximum number of scan responses
-//#define DEFAULT_MAX_SCAN_RES                  20//8
+#define DEFAULT_MAX_SCAN_RES                  8
 
 // Scan duration in ms
 #define DEFAULT_SCAN_DURATION                 25500
@@ -400,7 +400,7 @@ static void SimpleBLEPeripheral_init(void)
 #ifdef PLUS_OBSERVER
   //Setup GAP Observer params
   {
-    uint8_t scanRes = 8;
+    uint8_t scanRes = DEFAULT_MAX_SCAN_RES;
 
     GAPRole_SetParameter(GAPROLE_MAX_SCAN_RES, sizeof(uint8_t),
                                 &scanRes);
