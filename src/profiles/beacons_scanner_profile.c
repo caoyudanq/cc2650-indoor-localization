@@ -490,9 +490,6 @@ static bStatus_t beaconsScannerProfileReadAttrCB(uint16_t connHandle, gattAttrib
 {
     bStatus_t status = SUCCESS;
 
-    if(offset > 0)
-        return ATT_ERR_ATTR_NOT_LONG;
-
     if(pAttr->type.len == ATT_UUID_SIZE)
     {
         uint16 uuid = BUILD_UINT16(pAttr->type.uuid[12], pAttr->type.uuid[13]);
@@ -578,7 +575,7 @@ static bStatus_t beaconsScannerProfileWriteAttrCB(uint16_t connHandle, gattAttri
                     uint16 scanDuration;
                     memcpy(&scanDuration, pValue, BEACONS_SCAN_LENGTH);
 
-                    if(scanDuration > 0)
+                    if(scanDuration > 0 && beaconsScanDuration == 0)
                     {
                         beaconsScanDuration = scanDuration;
 
