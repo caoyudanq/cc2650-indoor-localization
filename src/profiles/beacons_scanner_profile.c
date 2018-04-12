@@ -402,6 +402,10 @@ bStatus_t BeaconsScannerProfile_SetParameter(uint8 param, uint16 len, void *valu
             {
                 beaconsListAgeOfScanValue = *((uint32_t *) value);
             }
+            else
+            {
+                status = bleInvalidRange;
+            }
             break;
         default:
             status = INVALIDPARAMETER;

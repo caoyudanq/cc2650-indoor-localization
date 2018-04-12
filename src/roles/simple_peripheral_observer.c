@@ -83,7 +83,7 @@
  */
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
-#define DEFAULT_ADVERTISING_INTERVAL          160
+#define DEFAULT_ADVERTISING_INTERVAL          1600
 
 // Limited discoverable mode advertises for 30.72s, and then stops
 // General discoverable mode advertises indefinitely
@@ -458,8 +458,6 @@ static void SimpleBLEPeripheral_init(void)
                          &desiredSlaveLatency);
     GAPRole_SetParameter(GAPROLE_TIMEOUT_MULTIPLIER, sizeof(uint16_t),
                          &desiredConnTimeout);
-
-    GAPRole_SetParameter(GAPROLE_PARAM_UPDATE_REQ, sizeof(uint8_t), &enableUpdateRequest);
   }
 
   // Set the GAP Characteristics
@@ -502,8 +500,10 @@ static void SimpleBLEPeripheral_init(void)
   // Start the Device
   VOID GAPRole_StartDevice(&SimpleBLEPeripheral_gapRoleCBs);
 
+  #ifdef PLUS_BOND_MANAGER
   // Start Bond Manager
   VOID GAPBondMgr_Register(&simpleBLEPeripheral_BondMgrCBs);
+  #endif
 
   // Register with GAP for HCI/Host messages
   GAP_RegisterForMsgs(selfEntity);
