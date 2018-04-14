@@ -89,29 +89,7 @@
 // General discoverable mode advertises indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
 
-// Minimum connection interval (units of 1.25ms, 80=100ms) if automatic
-// parameter update request is enabled
-#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
-
-// Maximum connection interval (units of 1.25ms, 800=1000ms) if automatic
-// parameter update request is enabled
-#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
-
-// Slave latency to use if automatic parameter update request is enabled
-#define DEFAULT_DESIRED_SLAVE_LATENCY         0
-
-// Supervision timeout value (units of 10ms, 1000=10s) if automatic parameter
-// update request is enabled
-#define DEFAULT_DESIRED_CONN_TIMEOUT          1000
-
-// Whether to enable automatic parameter update request when a connection is
-// formed
-#define DEFAULT_ENABLE_UPDATE_REQUEST         FALSE//TRUE
-
-// Connection Pause Peripheral time value (in seconds)
-#define DEFAULT_CONN_PAUSE_PERIPHERAL         6
-
-// How often to perform periodic event (in msec)
+// How often to perform periodic event (in msec) - already not used!
 #define SBP_PERIODIC_EVT_PERIOD               5000
 
 
@@ -391,10 +369,6 @@ static void SimpleBLEPeripheral_init(void)
   // Create an RTOS queue for message from profile to be sent to app.
   appMsgQueue = Util_constructQueue(&appMsg);
 
-  // Create one-shot clocks for internal periodic events.
-  Util_constructClock(&periodicClock, SimpleBLEPeripheral_clockHandler,
-                      SBP_PERIODIC_EVT_PERIOD, 0, false, SBP_PERIODIC_EVT);
-
   dispHandle = Display_open(Display_Type_LCD, NULL);
 
 #ifdef PLUS_OBSERVER
@@ -419,9 +393,6 @@ static void SimpleBLEPeripheral_init(void)
   }
 #endif
 
-  // Setup the GAP
-  GAP_SetParamValue(TGAP_CONN_PAUSE_PERIPHERAL, DEFAULT_CONN_PAUSE_PERIPHERAL);
-
   // Setup the GAP Peripheral Role Profile
   {
     // For all hardware platforms, device starts advertising upon initialization
@@ -432,12 +403,6 @@ static void SimpleBLEPeripheral_init(void)
     // until the enabler is set back to TRUE
     uint16_t advertOffTime = 0;
 
-    uint8_t enableUpdateRequest = DEFAULT_ENABLE_UPDATE_REQUEST;
-    uint16_t desiredMinInterval = DEFAULT_DESIRED_MIN_CONN_INTERVAL;
-    uint16_t desiredMaxInterval = DEFAULT_DESIRED_MAX_CONN_INTERVAL;
-    uint16_t desiredSlaveLatency = DEFAULT_DESIRED_SLAVE_LATENCY;
-    uint16_t desiredConnTimeout = DEFAULT_DESIRED_CONN_TIMEOUT;
-
     // Set the GAP Role Parameters
     GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
                          &initialAdvertEnable);
@@ -447,17 +412,6 @@ static void SimpleBLEPeripheral_init(void)
     GAPRole_SetParameter(GAPROLE_SCAN_RSP_DATA, sizeof(scanRspData),
                          scanRspData);
     GAPRole_SetParameter(GAPROLE_ADVERT_DATA, sizeof(advertData), advertData);
-
-    GAPRole_SetParameter(GAPROLE_PARAM_UPDATE_ENABLE, sizeof(uint8_t),
-                         &enableUpdateRequest);
-    GAPRole_SetParameter(GAPROLE_MIN_CONN_INTERVAL, sizeof(uint16_t),
-                         &desiredMinInterval);
-    GAPRole_SetParameter(GAPROLE_MAX_CONN_INTERVAL, sizeof(uint16_t),
-                         &desiredMaxInterval);
-    GAPRole_SetParameter(GAPROLE_SLAVE_LATENCY, sizeof(uint16_t),
-                         &desiredSlaveLatency);
-    GAPRole_SetParameter(GAPROLE_TIMEOUT_MULTIPLIER, sizeof(uint16_t),
-                         &desiredConnTimeout);
   }
 
   // Set the GAP Characteristics
@@ -510,8 +464,6 @@ static void SimpleBLEPeripheral_init(void)
 
   // Register for GATT local events and ATT Responses pending for transmission
   GATT_RegisterForMsgs(selfEntity);
-
-  HCI_LE_ReadMaxDataLenCmd();
 
   Display_print0(dispHandle, 0, 1, "CC2650-Indoor");
 }
@@ -1121,6 +1073,8 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 static void SimpleBLEPeripheral_performPeriodicTask(void)
 {
     //Do nothing
+    //If you want to use periodic task you have to create timer through
+    //function Util_constructClock within initialization function
 }
 
 /*********************************************************************
