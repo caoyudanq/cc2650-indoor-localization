@@ -107,7 +107,7 @@ static uint8 beaconsListAgeOfRecordCharDesc[] = "Age of record in ms";
 
 static uint8 beaconsListFlagOfMacChar = GATT_PROP_READ;
 static uint8 beaconsListFlagOfMacValue = 0;
-static uint8 beaconsListFlagOfMacCharDesc[] = "Flag of more devices were discovered";
+static uint8 beaconsListFlagOfMacCharDesc[] = "Flag";
 
 static uint8 beaconsListAgeOfScanChar = GATT_PROP_READ;
 static uint32_t beaconsListAgeOfScanValue = 0;
