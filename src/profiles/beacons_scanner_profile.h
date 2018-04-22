@@ -1,4 +1,8 @@
-/*
+/**
+ *  Created by Martin Donát in 2018.
+ *
+ *  Beacons Scanner Profile is used to catch advertise packets send by iBeacons devices. These
+ *  packets are stored in this profile after they are caught.
  *
  * */
 

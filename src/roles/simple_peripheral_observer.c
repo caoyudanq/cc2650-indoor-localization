@@ -89,6 +89,14 @@
 // General discoverable mode advertises indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL
 
+// Minimum connection interval (units of 1.25ms, 80=100ms) if automatic
+// parameter update request is enabled
+#define DEFAULT_DESIRED_MIN_CONN_INTERVAL     80
+
+// Maximum connection interval (units of 1.25ms, 800=1000ms) if automatic
+// parameter update request is enabled
+#define DEFAULT_DESIRED_MAX_CONN_INTERVAL     800
+
 // How often to perform periodic event (in msec) - already not used!
 #define SBP_PERIODIC_EVT_PERIOD               5000
 
@@ -389,7 +397,7 @@ static void SimpleBLEPeripheral_init(void)
     //Set scan window
     GAP_SetParamValue(TGAP_GEN_DISC_SCAN_WIND, (DEFAULT_SCAN_WINDOW)/(0.625)); //active scanning time within scan interval
 
-    GAP_SetParamValue(TGAP_FILTER_ADV_REPORTS, FALSE);
+    GAP_SetParamValue(TGAP_FILTER_ADV_REPORTS, FALSE); //disable packet filtering
   }
 #endif
 

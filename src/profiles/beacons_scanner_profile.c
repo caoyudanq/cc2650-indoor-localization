@@ -1,4 +1,8 @@
-/*
+/**
+ *  Created by Martin Donát in 2018.
+ *
+ *  Beacons Scanner Profile is used to catch advertise packets send by iBeacons devices. These
+ *  packets are stored in this profile after they are caught.
  *
  * */
 #include <xdc/runtime/System.h>
@@ -621,6 +625,7 @@ static bStatus_t beaconsScannerProfileWriteAttrCB(uint16_t connHandle, gattAttri
         status = ATT_ERR_INVALID_HANDLE;
     }
 
+    //When value determining scan duration was written into characteristic then is called application callback
     if(notifyApp != 0xFF && beaconsScannerProfile_AppCBs && beaconsScannerProfile_AppCBs->pfnBeaconsScannerProfileChange)
     {
         beaconsScannerProfile_AppCBs->pfnBeaconsScannerProfileChange(notifyApp);
